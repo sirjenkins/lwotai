@@ -4742,42 +4742,42 @@ class recruit(unittest.TestCase):
 	
 	def testRecruitChoice(self):
 		app = Labyrinth(1, 1, testBlankScenarioSetup)
-		self.assertFalse(app.recruitChoice())
+		self.assertFalse(app.recruitChoice(1))
 		app.map["Gulf States"].governance = 1
 		app.map["Gulf States"].activeCells = 1
-		self.assertEqual(app.recruitChoice(), "Gulf States")
+		self.assertEqual(app.recruitChoice(1), "Gulf States")
 		app.map["Gulf States"].activeCells = 0
 		app.map["Gulf States"].cadre = 1
-		self.assertEqual(app.recruitChoice(), "Gulf States")
+		self.assertEqual(app.recruitChoice(1), "Gulf States")
 		app.map["Gulf States"].activeCells = 1
 		app.map["Gulf States"].cadre = 0
 		app.map["Iraq"].governance = 1
 		app.map["Iraq"].activeCells = 1
 		for i in range(10):
-			retVal = app.recruitChoice()
+			retVal = app.recruitChoice(1)
 			self.assertTrue(retVal in ["Iraq", "Gulf States"])
 		app.map["Iraq"].activeCells = 0
 		app.map["Iraq"].cadre = 1
-		self.assertEqual(app.recruitChoice(), "Gulf States")
+		self.assertEqual(app.recruitChoice(1), "Gulf States")
 		app.map["Iraq"].troopCubes = 2
-		self.assertEqual(app.recruitChoice(), "Iraq")
+		self.assertEqual(app.recruitChoice(1), "Iraq")
 		app.map["Gulf States"].besieged = 1
-		self.assertEqual(app.recruitChoice(), "Gulf States")
+		self.assertEqual(app.recruitChoice(1), "Gulf States")
 		app.map["Russia"].sleeperCells = 1
-		self.assertEqual(app.recruitChoice(), "Russia")
+		self.assertEqual(app.recruitChoice(1), "Russia")
 		app.map["Philippines"].sleeperCells = 1
-		self.assertEqual(app.recruitChoice(), "Philippines")
+		self.assertEqual(app.recruitChoice(1), "Philippines")
 		app.map["Iraq"].governance = 4
 		app.map["Iraq"].activeCells = 6
-		self.assertEqual(app.recruitChoice(), "Philippines")
+		self.assertEqual(app.recruitChoice(1), "Philippines")
 		app.map["Iraq"].activeCells = 5
-		self.assertEqual(app.recruitChoice(), "Iraq")
+		self.assertEqual(app.recruitChoice(3), "Iraq")
 		app.map["Gulf States"].regimeChange = 1
 		app.map["Gulf States"].activeCells = 1
 		app.map["Gulf States"].troopCubes = 5
-		self.assertEqual(app.recruitChoice(), "Iraq")
+		self.assertEqual(app.recruitChoice(3), "Iraq")
 		app.map["Gulf States"].troopCubes = 6
-		self.assertEqual(app.recruitChoice(), "Gulf States")
+		self.assertEqual(app.recruitChoice(1), "Gulf States")
 		
 	def testExecuteRecruit(self):
 	# Normal
