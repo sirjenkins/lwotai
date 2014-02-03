@@ -1,0 +1,38 @@
+scenarios:
+  lets_roll:
+    start_year: 2001
+    prestige: 7
+    posture: HARD
+    troops: 11
+    funding: 9
+    cells: 11
+    phase: jihadist 
+    world_state:
+      Libya:
+        governance: POOR
+        alignment: ADVERSARY
+      Syria:
+        governance: FAIR
+        alignment: ADVERSARY
+      Iraq:
+        governance: POOR
+        alignment: ADVERSARY
+      Saudi_Arabia: 
+        governance: POOR
+        alignment: ALLY
+        troops_stationed: 2
+      Gulf_States: 
+        governance: FAIR
+        alignment: ALLY
+        troops_stationed: 2
+      Pakistan:
+        governance: FAIR
+        alignment: NEUTRAL
+      Afghanistan:
+        governance: ISLAMIST
+        alignment: ADVERSARY
+        cells:
+          sleeper: 4
+      Somalia:
+        markers: BESIEGED
+    
