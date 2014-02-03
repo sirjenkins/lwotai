@@ -1,0 +1,12 @@
+quick fixes:
+  move stuff into configs
+    * scenario setup
+    * map setup
+    * cards
+  extract board elements into Board class
+    * state
+    * state change methods
+  extract game rules and enforcement into GameEngine
+    * stick mechanics from card in board class
+  extract jihadist ai into jihadist bot class
+  
