@@ -1,5 +1,5 @@
 quick fixes:
-  move stuff into configs
+  move stuff into configs (yaml)
     * scenario setup
     * map setup
     * cards
@@ -9,4 +9,5 @@ quick fixes:
   extract game rules and enforcement into GameEngine
     * stick mechanics from card in board class
   extract jihadist ai into jihadist bot class
-  
+
+* fix saving  
