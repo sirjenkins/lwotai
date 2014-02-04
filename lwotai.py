@@ -2264,7 +2264,7 @@ class Labyrinth(cmd.Cmd):
             badCountry = True
       if badCountry:
         print("DEBUG: UNTESTED COUNTRY")
-        self.map[country].print(Country())
+        self.map[country].printCountry()
 
   def emptyline(self):
     print("%d (Turn %s)" % (self.startYear + (self.turn - 1), self.turn))
@@ -4556,7 +4556,7 @@ class Labyrinth(cmd.Cmd):
     print("Contries")
     print("--------")
     for country in needed:
-      self.map[country].print(Country())
+      self.map[country].printCountry()
     print("")
 
   def listCountriesWithTroops(self, needed = None):
@@ -4620,7 +4620,7 @@ class Labyrinth(cmd.Cmd):
     print("--------------------------")
     for country in self.map:
       if self.map[country].plots > 0:
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     print("")
 
   def listIslamicCountries(self, na = None):
@@ -4629,7 +4629,7 @@ class Labyrinth(cmd.Cmd):
     print("----------------------")
     for country in self.map:
       if self.map[country].governance == 4:
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     print("")
 
   def listRegimeChangeCountries(self, na = None):
@@ -4638,7 +4638,7 @@ class Labyrinth(cmd.Cmd):
     print("-----------------------")
     for country in self.map:
       if self.map[country].regimeChange > 0:
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     print("")
 
   def listRegimeChangeWithTwoCells(self, na = None):
@@ -4648,7 +4648,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].regimeChange > 0:
         if self.map[country].totalCells() >= 2:
-          self.map[country].print(Country())
+          self.map[country].printCountry()
     print("")
 
   def listCountriesWithCellAndAdjacentTroops(self, na = None):
@@ -4658,7 +4658,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].totalCells(True) > 0:
         if self.map[country].troops() > 0:
-          self.map[country].print(Country())
+          self.map[country].printCountry()
         else:
           for subCountry in self.map:
             if subCountry != country:
@@ -4683,7 +4683,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].plots > 0:
         if self.map[country].alignment == "Ally" or self.map[country].governance == 1:
-          self.map[country].print(Country())
+          self.map[country].printCountry()
     print("")
 
   def listMuslimCountriesWithCells(self, na = None):
@@ -4693,7 +4693,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].totalCells(True) > 0:
         if self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni":
-          self.map[country].print(Country())
+          self.map[country].printCountry()
     print("")
 
   def listBesiegedCountries(self, na = None):
@@ -4702,7 +4702,7 @@ class Labyrinth(cmd.Cmd):
     print("----------------")
     for country in self.map:
       if self.map[country].besieged > 0:
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     print("")
 
   def listShiaMixRegimeChangeCountriesWithCells(self, na = None):
@@ -4713,7 +4713,7 @@ class Labyrinth(cmd.Cmd):
       if self.map[country].type == "Shia-Mix":
         if self.map[country].regimeChange > 0:
           if (self.map[country].totalCells(True)) > 0:
-            self.map[country].print(Country())
+            self.map[country].printCountry()
     print("")
 
   def listShiaMixCountries(self, na = None):
@@ -4722,7 +4722,7 @@ class Labyrinth(cmd.Cmd):
     print("------------------")
     for country in self.map:
       if self.map[country].type == "Shia-Mix":
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     print("")
 
   def listShiaMixCountriesWithCellsTroops(self, na = None):
@@ -4732,7 +4732,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].type == "Shia-Mix":
         if self.map[country].troops() > 0 and self.map[country].totalCells() > 0:
-          self.map[country].print(Country())
+          self.map[country].printCountry()
     print("")
 
   def listSchengenCountries(self, na = None):
@@ -4741,7 +4741,7 @@ class Labyrinth(cmd.Cmd):
     print("------------------")
     for country in self.map:
       if self.map[country].schengen > 0:
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     print("")
 
   def listHambali(self, na = None):
@@ -4755,10 +4755,10 @@ class Labyrinth(cmd.Cmd):
       if self.map[country].totalCells(True) > 0:
         if self.map[country].type == "Non-Muslim":
           if self.map[country].posture == "Hard":
-            self.map[country].print(Country())
+            self.map[country].printCountry()
         else:
           if self.map[country].alignment == "Ally":
-            self.map[country].print(Country())
+            self.map[country].printCountry()
 
   def do_status(self, rest):
 
@@ -4782,7 +4782,7 @@ class Labyrinth(cmd.Cmd):
         goodCountry = possible[0]
 
       if goodCountry:
-        self.map[goodCountry].print(Country())
+        self.map[goodCountry].printCountry()
         return
       else:
         return
@@ -4816,7 +4816,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].type != "Non-Muslim" and self.map[country].governance == 1:
         num += 1
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     if not num:
       print("none")
     print("")
@@ -4825,7 +4825,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].type != "Non-Muslim" and self.map[country].governance == 2:
         num += 1
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     if not num:
       print("none")
     print("")
@@ -4834,7 +4834,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].type != "Non-Muslim" and self.map[country].governance == 3:
         num += 1
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     if not num:
       print("none")
     print("")
@@ -4843,7 +4843,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].type != "Non-Muslim" and self.map[country].governance == 4:
         num += 1
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     if not num:
       print("none")
     print("")
@@ -4852,7 +4852,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].posture == "Hard":
         num += 1
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     if not num:
       print("none")
     print("")
@@ -4861,7 +4861,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
       if self.map[country].posture == "Soft":
         num += 1
-        self.map[country].print(Country())
+        self.map[country].printCountry()
     if not num:
       print("none")
     print("")
