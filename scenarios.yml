@@ -31,12 +31,11 @@ lets_roll:
     Afghanistan:
       governance: ISLAMIST_RULE
       alignment: ADVERSARY
-      cells:
-        sleeper: 4
+      sleeper_cells: 4
     Somalia:
       besieged: 1
 
-call_me_al:
+you_can_call_me_al:
   turn: 1
   startYear: 2001
   prestige: 7
@@ -69,7 +68,52 @@ call_me_al:
     Afghanistan:
       governance: ISLAMIST_RULE
       alignment: ADVERSARY
-      cells:
-        sleeper: 4
+      sleeper_cells: 4
     Somalia:
       besieged: 1
+
+anaconda:
+  turn: 1
+  startYear: 2002
+  prestige: 8
+  posture: Hard
+  troops: 5
+  funding: 6
+  cells: 13
+  phase: "Jihadist Action Phase"
+  world_state:
+    Libya:
+      governance: POOR
+      alignment: ADVERSARY
+    Syria:
+      governance: FAIR
+      alignment: ADVERSARY
+    Iraq:
+      governance: POOR
+      alignment: ADVERSARY
+    Saudi_Arabia:
+      governance: POOR
+      alignment: ALLY
+      troops_stationed: 2
+    Gulf_States:
+      governance: FAIR
+      alignment: ALLY
+      troops_stationed: 2
+    Pakistan:
+      governance: POOR
+      alignment: ALLY
+      markers: [ "FATA" ]
+      sleeper_cells: 1
+    Afghanistan:
+      governance: ISLAMIST_RULE
+      alignment: ADVERSARY
+      sleeper_cells: 4
+      troops_stationed: 6
+      regime_change: 1
+    Somalia:
+      besieged: 1
+    Central_Asia:
+      governance: POOR
+      alignment: ALLY
+
+mission_accomplished:
