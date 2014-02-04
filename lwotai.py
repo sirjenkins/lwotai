@@ -5592,6 +5592,9 @@ def getUserYesNoResponse(prompt):
       print("Enter y or n.")
       print("")
 
+def raw_input(prompt):
+  return input(prompt)
+
 def main():
   print("")
   print("Labyrinth: The War on Terror AI Player")
