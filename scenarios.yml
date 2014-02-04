@@ -2,7 +2,7 @@ lets_roll:
   turn: 1
   startYear: 2001
   prestige: 7
-  posture: HARD
+  posture: Hard
   troops: 11
   funding: 9
   cells: 11
@@ -29,18 +29,18 @@ lets_roll:
       governance: FAIR
       alignment: NEUTRAL
     Afghanistan:
-      governance: ISLAMIST
+      governance: ISLAMIST_RULE
       alignment: ADVERSARY
       cells:
         sleeper: 4
     Somalia:
-      markers: BESIEGED
+      besieged: 1
 
 call_me_al:
   turn: 1
   startYear: 2001
   prestige: 7
-  posture: SOFT
+  posture: Soft
   troops: 11
   funding: 9
   cells: 11
@@ -67,9 +67,9 @@ call_me_al:
       governance: FAIR
       alignment: NEUTRAL
     Afghanistan:
-      governance: ISLAMIST
+      governance: ISLAMIST_RULE
       alignment: ADVERSARY
       cells:
         sleeper: 4
     Somalia:
-      markers: BESIEGED
+      besieged: 1

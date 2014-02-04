@@ -28,6 +28,20 @@ except:
   import pickle
 import os.path
 import yaml
+from enum import IntEnum
+
+class Governance(IntEnum):
+  ISLAMIST_RULE = 4
+  POOR = 3
+  FAIR = 2
+  GOOD = 1
+
+class Alignment(IntEnum):
+  ADVERSARY = 1
+  NEUTRAL = 2
+  ALLY = 3
+
+COUNTRY_STATS = {'governance': Governance, 'alignment': Alignment}
 
 class Country:
   app = None
@@ -38,7 +52,7 @@ class Country:
   governance = 0
   schengen = False
   recruit = 0
-  troopCubes = 0
+  troops_stationed = 0
   activeCells = 0
   sleeperCells = 0
   oil = False
@@ -61,7 +75,7 @@ class Country:
     self.governance = theGovernance
     self.schengen = theSchengen
     self.recruit = theRecruit
-    self.troopCubes = 0
+    self.troops_stationed = 0
     self.activeCells = 0
     self.sleeperCells = 0
     self.oil = theOil
@@ -100,18 +114,18 @@ class Country:
     self.app.cells += 1
 
   def troops(self):
-    troopCount = self.troopCubes
+    troopCount = self.troops_stationed
     if "NATO" in self.markers:
       troopCount += 2
     return troopCount
 
   def changeTroops(self, delta):
-    self.troopCubes += delta
-    if self.troopCubes < 0:
+    self.troops_stationed += delta
+    if self.troops_stationed < 0:
       if "NATO" in self.markers:
         self.markers.remove("NATO")
         self.app.outputToHistory("NATO removed from %s" % self.name, True)
-      self.troopCubes = 0
+      self.troops_stationed = 0
 
   def govStr(self):
     if self.governance == 1:
@@ -2254,7 +2268,7 @@ class Labyrinth(cmd.Cmd):
   # Countries tested test
     for country in self.map:
       badCountry = False
-      if (self.map[country].sleeperCells > 0) or (self.map[country].activeCells > 0) or (self.map[country].troopCubes > 0) or (self.map[country].aid > 0) or  (self.map[country].regimeChange > 0) or (self.map[country].cadre > 0) or (self.map[country].plots > 0):
+      if (self.map[country].sleeperCells > 0) or (self.map[country].activeCells > 0) or (self.map[country].troops_stationed > 0) or (self.map[country].aid > 0) or  (self.map[country].regimeChange > 0) or (self.map[country].cadre > 0) or (self.map[country].plots > 0):
         if (self.map[country].governance == 0):
           badCountry = True
         if self.map[country].type == "Non-Muslim":
@@ -2484,30 +2498,17 @@ class Labyrinth(cmd.Cmd):
         for t in board_trackers:
           setattr(self, t, scenario[t])
 
-      self.map["Libya"].governance = 3
-      self.map["Libya"].alignment = "Adversary"
-      self.map["Syria"].governance = 2
-      self.map["Syria"].alignment = "Adversary"
-      self.map["Iraq"].governance = 3
-      self.map["Iraq"].alignment = "Adversary"
-      self.map["Saudi Arabia"].governance = 3
-      self.map["Saudi Arabia"].alignment = "Ally"
-      self.map["Saudi Arabia"].troopCubes = 2
-      self.map["Gulf States"].governance = 2
-      self.map["Gulf States"].alignment = "Ally"
-      self.map["Gulf States"].troopCubes = 2
-      self.map["Pakistan"].governance = 2
-      self.map["Pakistan"].alignment = "Neutral"
-      self.map["Afghanistan"].governance = 4
-      self.map["Afghanistan"].alignment = "Adversary"
-      self.map["Afghanistan"].sleeperCells = 4
-      self.map["Somalia"].besieged = 1
-      if self.scenario == 1:
-        self.map["United States"].posture = "Hard"
-      else:
-        self.map["United States"].posture = "Soft"
-        print("Remove the card Axis of Evil from the game.")
-        print("")
+        for country, state in scenario['world_state'].items():
+          for k, v in state.items():
+            if k in COUNTRY_STATS.keys():
+              setattr(self.map[country.replace('_',' ')], k, COUNTRY_STATS[k][v])
+            else :
+              setattr(self.map[country.replace('_',' ')], k, v)
+        self.map["United States"].posture = scenario['posture']
+
+        if self.scenario == 2:
+          print("Remove the card Axis of Evil from the game. \n")
+
     elif self.scenario == 3:
       self.startYear = 2002
       self.turn = 1
@@ -2523,10 +2524,10 @@ class Labyrinth(cmd.Cmd):
       self.map["Iraq"].alignment = "Adversary"
       self.map["Saudi Arabia"].governance = 3
       self.map["Saudi Arabia"].alignment = "Ally"
-      self.map["Saudi Arabia"].troopCubes = 2
+      self.map["Saudi Arabia"].troops_stationed = 2
       self.map["Gulf States"].governance = 2
       self.map["Gulf States"].alignment = "Ally"
-      self.map["Gulf States"].troopCubes = 2
+      self.map["Gulf States"].troops_stationed = 2
       self.map["Pakistan"].governance = 3
       self.map["Pakistan"].alignment = "Ally"
       self.map["Pakistan"].sleeperCells = 1
@@ -2534,7 +2535,7 @@ class Labyrinth(cmd.Cmd):
       self.map["Afghanistan"].governance = 3
       self.map["Afghanistan"].alignment = "Ally"
       self.map["Afghanistan"].sleeperCells = 1
-      self.map["Afghanistan"].troopCubes = 6
+      self.map["Afghanistan"].troops_stationed = 6
       self.map["Afghanistan"].regimeChange = 1
       self.map["Somalia"].besieged = 1
       self.map["Central Asia"].governance = 3
@@ -2564,7 +2565,7 @@ class Labyrinth(cmd.Cmd):
       self.map["Syria"].sleeperCells = 1
       self.map["Iraq"].governance = 3
       self.map["Iraq"].alignment = "Ally"
-      self.map["Iraq"].troopCubes = 6
+      self.map["Iraq"].troops_stationed = 6
       self.map["Iraq"].sleeperCells = 3
       self.map["Iraq"].regimeChange = 1
       self.map["Iran"].sleeperCells = 1
@@ -2573,7 +2574,7 @@ class Labyrinth(cmd.Cmd):
       self.map["Saudi Arabia"].sleeperCells = 1
       self.map["Gulf States"].governance = 2
       self.map["Gulf States"].alignment = "Ally"
-      self.map["Gulf States"].troopCubes = 2
+      self.map["Gulf States"].troops_stationed = 2
       self.map["Pakistan"].governance = 2
       self.map["Pakistan"].alignment = "Ally"
       self.map["Pakistan"].sleeperCells = 1
@@ -2581,7 +2582,7 @@ class Labyrinth(cmd.Cmd):
       self.map["Afghanistan"].governance = 3
       self.map["Afghanistan"].alignment = "Ally"
       self.map["Afghanistan"].sleeperCells = 1
-      self.map["Afghanistan"].troopCubes = 5
+      self.map["Afghanistan"].troops_stationed = 5
       self.map["Afghanistan"].regimeChange = 1
       self.map["Somalia"].besieged = 1
       self.map["Central Asia"].governance = 2
@@ -2590,7 +2591,7 @@ class Labyrinth(cmd.Cmd):
       self.map["Indonesia/Malaysia"].alignment = "Neutral"
       self.map["Indonesia/Malaysia"].sleeperCells = 1
       self.map["Philippines"].posture = "Soft"
-      self.map["Philippines"].troopCubes = 2
+      self.map["Philippines"].troops_stationed = 2
       self.map["Philippines"].sleeperCells = 1
       self.map["United Kingdom"].posture = "Hard"
       self.markers.append("Abu Sayyaf")
@@ -2673,14 +2674,14 @@ class Labyrinth(cmd.Cmd):
       self.map["Iraq"].plots = 2
       self.map["Saudi Arabia"].governance = 3
       self.map["Saudi Arabia"].alignment = "Ally"
-      self.map["Saudi Arabia"].troopCubes = 2
+      self.map["Saudi Arabia"].troops_stationed = 2
       self.map["Pakistan"].governance = 3
       self.map["Pakistan"].alignment = "Ally"
-      self.map["Pakistan"].troopCubes = 2
+      self.map["Pakistan"].troops_stationed = 2
       self.map["Pakistan"].activeCells = 4
       self.map["Gulf States"].governance = 3
       self.map["Gulf States"].alignment = "Ally"
-      self.map["Gulf States"].troopCubes = 2
+      self.map["Gulf States"].troops_stationed = 2
       self.map["Gulf States"].sleeperCells = 10
       self.map["Gulf States"].activeCells = 4
       self.map["Pakistan"].governance = 2
