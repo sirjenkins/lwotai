@@ -27,6 +27,7 @@ try:
 except:
   import pickle
 import os.path
+import yaml
 
 class Country:
   app = None
@@ -2469,13 +2470,20 @@ class Labyrinth(cmd.Cmd):
 
   def scenarioSetup(self):
     if self.scenario == 1 or self.scenario == 2: # Let's Roll
-      self.startYear = 2001
-      self.turn = 1
-      self.prestige = 7
-      self.troops = 11
-      self.funding = 9
-      self.cells = 11
-      self.phase = "Jihadist Action Phase"
+      board_trackers = [
+        'startYear'
+        , 'turn'
+        , 'prestige'
+        , 'troops'
+        , 'funding'
+        , 'cells'
+        , 'phase'
+      ]
+      with open('scenarios.yml', 'r') as f:
+        scenario = yaml.load(f)['lets_roll']
+        for t in board_trackers:
+          setattr(self, t, scenario[t])
+
       self.map["Libya"].governance = 3
       self.map["Libya"].alignment = "Adversary"
       self.map["Syria"].governance = 2
