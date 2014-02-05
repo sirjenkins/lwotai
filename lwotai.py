@@ -2487,6 +2487,8 @@ class Labyrinth(cmd.Cmd):
     for t in board_trackers:
       setattr(self, t, scenario[t])
 
+    self.markers.extend(scenario['events'])
+
     for country, state in scenario['world_state'].items():
       for k, v in state.items():
         if k in COUNTRY_STATS.keys():
@@ -2495,8 +2497,17 @@ class Labyrinth(cmd.Cmd):
           self.map[country.replace('_',' ')].markers.extend(v)
         else :
           setattr(self.map[country.replace('_',' ')], k, v)
+
     self.map["United States"].posture = scenario['posture']
 
+    if scenario['random_cell_placement']['countries'] > 0 and scenario['random_cell_placement']['cells_per_country'] > 0:
+      self.randomly_place_cells(scenario['random_cell_placement']['countries'], scenario['random_cell_placement']['cells_per_country'])
+
+  def randomly_place_cells(self, num_countries, num_cell_per_country):
+    for country in random.sample(list(self.map.keys()), num_countries):
+      self.testCountry(country)
+      self.placeCells(country, num_cell_per_country)
+    
   def scenarioSetup(self):
     scenarios = ''
     with open('scenarios.yml', 'r') as f:
@@ -2509,71 +2520,18 @@ class Labyrinth(cmd.Cmd):
       print("Remove the card Axis of Evil from the game. \n")
 
     elif self.scenario == 3:
-      self.setup_board(scenarios['anaconda']) 
-      self.markers.append("Patriot Act")
+      self.setup_board(scenarios['anaconda'])
+      print("Remove the cards Patriot Act and Tora Bora from the game. \n")
 
-      for country in random.sample(list(self.map.keys()), 3):
-        self.testCountry(country)
-        self.placeCells(country, 1)
-
-      print("Remove the cards Patriot Act and Tora Bora from the game.")
-      print("")
     elif self.scenario == 4:
-      self.startYear = 2003
-      self.turn = 1
-      self.prestige = 3
-      self.troops = 0
-      self.funding = 5
-      self.cells = 5
-      self.map["Libya"].governance = 3
-      self.map["Libya"].alignment = "Adversary"
-      self.map["Syria"].governance = 2
-      self.map["Syria"].alignment = "Adversary"
-      self.map["Syria"].sleeper_cells = 1
-      self.map["Iraq"].governance = 3
-      self.map["Iraq"].alignment = "Ally"
-      self.map["Iraq"].troops_stationed = 6
-      self.map["Iraq"].sleeper_cells = 3
-      self.map["Iraq"].regimeChange = 1
-      self.map["Iran"].sleeper_cells = 1
-      self.map["Saudi Arabia"].governance = 3
-      self.map["Saudi Arabia"].alignment = "Ally"
-      self.map["Saudi Arabia"].sleeper_cells = 1
-      self.map["Gulf States"].governance = 2
-      self.map["Gulf States"].alignment = "Ally"
-      self.map["Gulf States"].troops_stationed = 2
-      self.map["Pakistan"].governance = 2
-      self.map["Pakistan"].alignment = "Ally"
-      self.map["Pakistan"].sleeper_cells = 1
-      self.map["Pakistan"].markers.append("FATA")
-      self.map["Afghanistan"].governance = 3
-      self.map["Afghanistan"].alignment = "Ally"
-      self.map["Afghanistan"].sleeper_cells = 1
-      self.map["Afghanistan"].troops_stationed = 5
-      self.map["Afghanistan"].regimeChange = 1
-      self.map["Somalia"].besieged = 1
-      self.map["Central Asia"].governance = 2
-      self.map["Central Asia"].alignment = "Neutral"
-      self.map["Indonesia/Malaysia"].governance = 2
-      self.map["Indonesia/Malaysia"].alignment = "Neutral"
-      self.map["Indonesia/Malaysia"].sleeper_cells = 1
-      self.map["Philippines"].posture = "Soft"
-      self.map["Philippines"].troops_stationed = 2
-      self.map["Philippines"].sleeper_cells = 1
-      self.map["United Kingdom"].posture = "Hard"
-      self.markers.append("Abu Sayyaf")
-      self.markers.append("Patriot Act")
-      self.markers.append("NEST")
-      self.markers.append("Enhanced Measures")
-      self.markers.append("Renditions")
-      self.markers.append("Wiretapping")
+      self.setup_board(scenarios['mission_accomplished'])
+
       possibles = []
       for country in self.map:
         if self.map[country].schengen:
           self.testCountry(country)
-      print("")
-      print("Remove the cards Patriot Act, Tora Bora, NEST, Abu Sayyaf, KSM and Iraqi WMD from the game.")
-      print("")
+      print("Remove the cards Patriot Act, Tora Bora, NEST, Abu Sayyaf, KSM and Iraqi WMD from the game. \n")
+
     goodRes = 0
     islamRes = 0
     goodC = 0
