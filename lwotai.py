@@ -2212,7 +2212,7 @@ class Labyrinth(cmd.Cmd):
     if setupFuntion:
       setupFuntion(self)
     else:
-      self.scenarioSetup()
+      self.scenario_setup()
       #self.testScenarioSetup()
     self.prompt = "Command: "
     self.gameOver = False
@@ -2389,7 +2389,7 @@ class Labyrinth(cmd.Cmd):
     print("World Posture: %s %d" % self.gwot())
     print("US Prestige: %d \n" % self.prestige)
 
-  def scenarioSetup(self):
+  def scenario_setup(self):
     scenarios = None
     with open(SCENARIOS_FILE, 'r') as f:
       scenarios = yaml.load(f)
