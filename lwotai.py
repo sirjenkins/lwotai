@@ -2204,7 +2204,7 @@ class Labyrinth(cmd.Cmd):
     self.jCard = 1
     self.phase = ""
     self.map = {}
-    self.mapSetup()
+    self.map_setup()
     self.history = []
     self.markers = []
     self.lapsing = []
@@ -2308,158 +2308,20 @@ class Labyrinth(cmd.Cmd):
     if lineFeed:
       print("")
 
-  def mapSetup(self):
+  def map_setup(self):
     countries = None
     with open(MAP_FILE, 'r') as f :
       countries = yaml.load(f)
 
     for country, stats in countries.items() :
       self.map[country] = Country(self, country, stats)
-      
-    self.map["Canada"].links.append(self.map["United States"])
-    self.map["Canada"].links.append(self.map["United Kingdom"])
-    self.map["Canada"].schengenLink = True
-  #   self.map["United States"] = Country("United States", "Non-Muslim", "Hard", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["United States"].links.append(self.map["Canada"])
-    self.map["United States"].links.append(self.map["United Kingdom"])
-    self.map["United States"].links.append(self.map["Philippines"])
-    self.map["United States"].schengenLink = True
-  #   self.map["United Kingdom"] = Country("United Kingdom", "Non-Muslim", "", "", 1, False, 3, 0, 0, 0, False, 0)
-    self.map["United Kingdom"].links.append(self.map["Canada"])
-    self.map["United Kingdom"].links.append(self.map["United States"])
-    self.map["United Kingdom"].schengenLink = True
-  #   self.map["Serbia"] = Country("Serbia", "Non-Muslim", "", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["Serbia"].links.append(self.map["Russia"])
-    self.map["Serbia"].links.append(self.map["Turkey"])
-    self.map["Serbia"].schengenLink = True
-  #   self.map["Israel"] = Country("Israel", "Non-Muslim", "Hard", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["Israel"].links.append(self.map["Lebanon"])
-    self.map["Israel"].links.append(self.map["Jordan"])
-    self.map["Israel"].links.append(self.map["Egypt"])
-  #   self.map["India"] = Country("India", "Non-Muslim", "", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["India"].links.append(self.map["Pakistan"])
-    self.map["India"].links.append(self.map["Indonesia/Malaysia"])
-  #   self.map["Russia"] = Country("Russia", "Non-Muslim", "", "", 2, True, 0, 0, 0, 0, False, 0)
-    self.map["Russia"].links.append(self.map["Serbia"])
-    self.map["Russia"].links.append(self.map["Turkey"])
-    self.map["Russia"].links.append(self.map["Caucasus"])
-    self.map["Russia"].links.append(self.map["Central Asia"])
-    self.map["Russia"].schengenLink = True
-  #   self.map["Caucasus"] = Country("Caucasus", "Non-Muslim", "", "", 2, True, 0, 0, 0, 0, False, 0)
-    self.map["Caucasus"].links.append(self.map["Russia"])
-    self.map["Caucasus"].links.append(self.map["Turkey"])
-    self.map["Caucasus"].links.append(self.map["Iran"])
-    self.map["Caucasus"].links.append(self.map["Central Asia"])
-  #   self.map["China"] = Country("China", "Non-Muslim", "", "", 2, True, 0, 0, 0, 0, False, 0)
-    self.map["China"].links.append(self.map["Central Asia"])
-    self.map["China"].links.append(self.map["Thailand"])
-  #   self.map["Kenya/Tanzania"] = Country("Kenya/Tanzania", "Non-Muslim", "", "", 2, True, 0, 0, 0, 0, False, 0)
-    self.map["Kenya/Tanzania"].links.append(self.map["Sudan"])
-    self.map["Kenya/Tanzania"].links.append(self.map["Somalia"])
-  #   self.map["Thailand"] = Country("Thailand", "Non-Muslim", "", "", 2, True, 0, 0, 0, 0, False, 0)
-    self.map["Thailand"].links.append(self.map["China"])
-    self.map["Thailand"].links.append(self.map["Philippines"])
-    self.map["Thailand"].links.append(self.map["Indonesia/Malaysia"])
-  #   self.map["Philippines"] = Country("Philippines", "Non-Muslim", "", "", 2, True, 3, 0, 0, 0, False, 0)
-    self.map["Philippines"].links.append(self.map["United States"])
-    self.map["Philippines"].links.append(self.map["Thailand"])
-    self.map["Philippines"].links.append(self.map["Indonesia/Malaysia"])
-  #   self.map["Morocco"] = Country("Morocco", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Morocco"].links.append(self.map["Algeria/Tunisia"])
-    self.map["Morocco"].schengenLink = True
-  #   self.map["Algeria/Tunisia"] = Country("Algeria/Tunisia", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 2)
-    self.map["Algeria/Tunisia"].links.append(self.map["Morocco"])
-    self.map["Algeria/Tunisia"].links.append(self.map["Libya"])
-    self.map["Algeria/Tunisia"].schengenLink = True
-  #   self.map["Libya"] = Country("Libya", "Suni", "", "Adversary", 3, False, 0, 0, 0, 0, True, 1)
-    self.map["Libya"].links.append(self.map["Algeria/Tunisia"])
-    self.map["Libya"].links.append(self.map["Egypt"])
-    self.map["Libya"].links.append(self.map["Sudan"])
-    self.map["Libya"].schengenLink = True
-  #   self.map["Egypt"] = Country("Egypt", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 3)
-    self.map["Egypt"].links.append(self.map["Libya"])
-    self.map["Egypt"].links.append(self.map["Israel"])
-    self.map["Egypt"].links.append(self.map["Sudan"])
-  #   self.map["Sudan"] = Country("Sudan", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 1)
-    self.map["Sudan"].links.append(self.map["Libya"])
-    self.map["Sudan"].links.append(self.map["Egypt"])
-    self.map["Sudan"].links.append(self.map["Kenya/Tanzania"])
-    self.map["Sudan"].links.append(self.map["Somalia"])
-  #   self.map["Somalia"] = Country("Somalia", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Somalia"].links.append(self.map["Sudan"])
-    self.map["Somalia"].links.append(self.map["Kenya/Tanzania"])
-    self.map["Somalia"].links.append(self.map["Yemen"])
-  #   self.map["Jordan"] = Country("Jordan", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Jordan"].links.append(self.map["Israel"])
-    self.map["Jordan"].links.append(self.map["Syria"])
-    self.map["Jordan"].links.append(self.map["Iraq"])
-    self.map["Jordan"].links.append(self.map["Saudi Arabia"])
-  #   self.map["Syria"] = Country("Syria", "Suni", "Adversary", "Fair", 2, False, 0, 0, 0, 0, False, 2)
-    self.map["Syria"].links.append(self.map["Turkey"])
-    self.map["Syria"].links.append(self.map["Lebanon"])
-    self.map["Syria"].links.append(self.map["Jordan"])
-    self.map["Syria"].links.append(self.map["Iraq"])
-  #   self.map["Central Asia"] = Country("Central Asia", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Central Asia"].links.append(self.map["Russia"])
-    self.map["Central Asia"].links.append(self.map["Caucasus"])
-    self.map["Central Asia"].links.append(self.map["Iran"])
-    self.map["Central Asia"].links.append(self.map["Afghanistan"])
-    self.map["Central Asia"].links.append(self.map["China"])
-  #   self.map["Indonesia/Malaysia"] = Country("Indonesia/Malaysia", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 3)
-    self.map["Indonesia/Malaysia"].links.append(self.map["Thailand"])
-    self.map["Indonesia/Malaysia"].links.append(self.map["India"])
-    self.map["Indonesia/Malaysia"].links.append(self.map["Philippines"])
-    self.map["Indonesia/Malaysia"].links.append(self.map["Pakistan"])
-  #   self.map["Turkey"] = Country("Turkey", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Turkey"].links.append(self.map["Serbia"])
-    self.map["Turkey"].links.append(self.map["Russia"])
-    self.map["Turkey"].links.append(self.map["Caucasus"])
-    self.map["Turkey"].links.append(self.map["Iran"])
-    self.map["Turkey"].links.append(self.map["Syria"])
-    self.map["Turkey"].links.append(self.map["Iraq"])
-    self.map["Turkey"].schengenLink = True
-  #   self.map["Lebanon"] = Country("Lebanon", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Lebanon"].links.append(self.map["Syria"])
-    self.map["Lebanon"].links.append(self.map["Israel"])
-    self.map["Lebanon"].schengenLink = True
-  #   self.map["Yemen"] = Country("Yemen", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Yemen"].links.append(self.map["Saudi Arabia"])
-    self.map["Yemen"].links.append(self.map["Somalia"])
-  #   self.map["Iraq"] = Country("Iraq", "Shia-Mix", "", "Adversary", 3, False, 0, 0, 0, 0, True, 3)
-    self.map["Iraq"].links.append(self.map["Syria"])
-    self.map["Iraq"].links.append(self.map["Turkey"])
-    self.map["Iraq"].links.append(self.map["Iran"])
-    self.map["Iraq"].links.append(self.map["Gulf States"])
-    self.map["Iraq"].links.append(self.map["Saudi Arabia"])
-    self.map["Iraq"].links.append(self.map["Jordan"])
-  #   self.map["Saudi Arabia"] = Country("Saudi Arabia", "Shia-Mix", "", "Ally", 3, False, 0, 2, 0, 0, True, 3)
-    self.map["Saudi Arabia"].links.append(self.map["Jordan"])
-    self.map["Saudi Arabia"].links.append(self.map["Iraq"])
-    self.map["Saudi Arabia"].links.append(self.map["Gulf States"])
-    self.map["Saudi Arabia"].links.append(self.map["Yemen"])
-  #   self.map["Gulf States"] = Country("Gulf States", "Shia-Mix", "", "Ally", 2, False, 0, 2, 0, 0, True, 3)
-    self.map["Gulf States"].links.append(self.map["Iran"])
-    self.map["Gulf States"].links.append(self.map["Pakistan"])
-    self.map["Gulf States"].links.append(self.map["Saudi Arabia"])
-    self.map["Gulf States"].links.append(self.map["Iraq"])
-  #   self.map["Pakistan"] = Country("Pakistan", "Shia-Mix", "", "Neutral", 2, False, 0, 0, 0, 0, False, 2)
-    self.map["Pakistan"].links.append(self.map["Iran"])
-    self.map["Pakistan"].links.append(self.map["Afghanistan"])
-    self.map["Pakistan"].links.append(self.map["India"])
-    self.map["Pakistan"].links.append(self.map["Gulf States"])
-    self.map["Pakistan"].links.append(self.map["Indonesia/Malaysia"])
-  #   self.map["Afghanistan"] = Country("Afghanistan", "Shia-Mix", "", "Adversary", 4, False, 0, 0, 0, 4, False, 1)
-    self.map["Afghanistan"].links.append(self.map["Central Asia"])
-    self.map["Afghanistan"].links.append(self.map["Pakistan"])
-    self.map["Afghanistan"].links.append(self.map["Iran"])
-  #   self.map["Iran"] = Country("Iran", "Iran", "", "", 0, False, 0, 0, 0, 0, False, 0)
-    self.map["Iran"].links.append(self.map["Central Asia"])
-    self.map["Iran"].links.append(self.map["Afghanistan"])
-    self.map["Iran"].links.append(self.map["Pakistan"])
-    self.map["Iran"].links.append(self.map["Gulf States"])
-    self.map["Iran"].links.append(self.map["Iraq"])
-    self.map["Iran"].links.append(self.map["Turkey"])
-    self.map["Iran"].links.append(self.map["Caucasus"])
+
+    for country in countries.keys() :
+      for adj in countries[country]['adjacent_countries'] :
+        if adj == 'Schengen' :
+          self.map[country].schengenLink = True
+        else :
+          self.map[country].links.append(self.map[adj])
 
   def setup_board(self, scenario):
     board_trackers = [ 'startYear' , 'turn' , 'prestige' , 'troops' , 'funding' , 'cells' , 'phase' ]
@@ -2481,6 +2343,7 @@ class Labyrinth(cmd.Cmd):
 
     if scenario['random_cell_placement']['countries'] > 0 and scenario['random_cell_placement']['cells_per_country'] > 0:
       self.randomly_place_cells(scenario['random_cell_placement']['countries'], scenario['random_cell_placement']['cells_per_country'])
+
 
   def randomly_place_cells(self, num_countries, num_cell_per_country):
     for country in random.sample(list(self.map.keys()), num_countries):
