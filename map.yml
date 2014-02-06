@@ -1,0 +1,380 @@
+"Canada":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"United States":
+  culture: "Non-Muslim"
+  posture: HARD
+  alignment: TEST
+  governance: GOOD
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"United Kingdom":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: False
+  recruit_req: 3
+  oil: False
+  resources: 0
+
+"Serbia":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Israel":
+  culture: "Non-Muslim"
+  posture: HARD
+  alignment: TEST
+  governance: GOOD
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"India":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Scandinavia":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Eastern Europe":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Benelux":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Germany":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"France":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 2
+  oil: False
+  resources: 0
+
+"Italy":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Spain":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: GOOD
+  schengen: True
+  recruit_req: 2
+  oil: False
+  resources: 0
+
+"Russia":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Caucasus":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"China":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Kenya/Tanzania":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Thailand":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+
+"Philippines":
+  culture: "Non-Muslim"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 3
+  oil: False
+  resources: 0
+
+"Morocco":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 2
+
+"Algeria/Tunisia":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 2
+
+"Libya":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 1
+
+"Egypt":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 3
+
+"Sudan":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 1
+
+"Somalia":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 1
+
+"Jordan":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 1
+
+"Syria":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 2
+
+"Central Asia":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 2
+
+"Indonesia/Malaysia":
+  culture: "Suni"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 3
+
+"Turkey":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 2
+
+"Lebanon":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 1
+
+"Yemen":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 1
+
+"Iraq":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 3
+
+"Saudi Arabia":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 3
+
+"Gulf States":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: True
+  resources: 3
+
+"Pakistan":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 2
+
+"Afghanistan":
+  culture: "Shia-Mix"
+  posture: TEST
+  alignment: TEST
+  governance: TEST
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 1
+
+"Iran":
+  culture: "Iran"
+  posture: TEST
+  alignment: TEST
+  governance: FAIR
+  schengen: False
+  recruit_req: 0
+  oil: False
+  resources: 0
+

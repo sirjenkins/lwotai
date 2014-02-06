@@ -17,6 +17,8 @@ Release 1.08112011.1
 SUSPEND_FILE = "suspend.lwot"
 UNDO_FILE = "undo.lwot"
 ROLLBACK_FILE = "turn."
+MAP_FILE = "map.yml"
+SCENARIOS_FILE = "scenarios.yml"
 
 import sys
 import cmd
@@ -39,6 +41,7 @@ class Governance(IntEnum):
   TEST = 0
 
 class Alignment(IntEnum):
+  TEST = 0
   ADVERSARY = 1
   NEUTRAL = 2
   ALLY = 3
@@ -46,18 +49,19 @@ class Alignment(IntEnum):
 class Posture(Enum):
   HARD = 'Hard'
   SOFT = 'Soft'
+  TEST = '??'
 
 COUNTRY_STATS = {'governance': Governance, 'alignment': Alignment}
 
 class Country:
   app = None
   name = ""
-  type = ""
+  culture = ""
   posture = ""
   alignment = ""
   governance = Governance.TEST
   schengen = False
-  recruit = 0
+  recruit_req = 0
   troops_stationed = 0
   activeCells = 0
   sleeper_cells = 0
@@ -72,20 +76,22 @@ class Country:
   cadre = 0
   plots = 0
 
-  def __init__(self, theApp, theName, theType, thePosture, theAlignment, theGovernance, theSchengen, theRecruit, no1,no2,no3, theOil, theResources):
+  def __init__(self, theApp, country_name, stats):
     self.app = theApp
-    self.name = theName
-    self.type = theType
-    self.posture = thePosture
-    self.alignment = theAlignment
-    self.governance = theGovernance
-    self.schengen = theSchengen
-    self.recruit = theRecruit
+
+    self.name = country_name
+    self.culture = stats['culture']
+    self.posture = Posture[stats['posture']]
+    self.alignment = Alignment[stats['alignment']]
+    self.governance = Governance[stats['governance']]
+    self.schengen = stats['schengen']
+    self.recruit_req = stats['recruit_req']
+    self.resources = stats['resources']
+    self.oil = stats['oil']
+
     self.troops_stationed = 0
     self.activeCells = 0
     self.sleeper_cells = 0
-    self.oil = theOil
-    self.resources = theResources
     self.aid = 0
     self.besieged = 0
     self.regimeChange = 0
@@ -143,12 +149,12 @@ class Country:
     elif self.governance == 4:
       return "Islamic Rule"
 
-  def typePretty(self, theType):
-    if theType == "Non-Muslim":
+  def typePretty(self, culture):
+    if culture == "Non-Muslim":
       return "NM"
-    elif theType == "Suni":
+    elif culture == "Suni":
       return "SU"
-    elif theType == "Shia-Mix":
+    elif culture == "Shia-Mix":
       return "SM"
     else:
       return "IR"
@@ -157,16 +163,16 @@ class Country:
     markersStr = ""
     if len(self.markers) != 0:
       markersStr = "\n   Markers: %s" % ", ".join(self.markers)
-    if self.type == "Shia-Mix" or self.type == "Suni":
+    if self.culture == "Shia-Mix" or self.culture == "Suni":
       return "%s, %s %s, %d Resource(s)\n   Troops:%d Active:%d Sleeper:%d Cadre:%d Aid:%d Besieged:%d Reg Ch:%d Plots:%d %s" % (self.name, self.govStr(),self.alignment,self.app.countryResources(self.name),self.troops(),self.activeCells,self.sleeper_cells, self.cadre, self.aid, self.besieged, self.regimeChange, self.plots, markersStr)
 
     elif self.name == "Philippines":
       return "%s - Posture:%s\n   Troops:%d Active:%d Sleeper:%d Cadre:%d Plots:%d %s" % (self.name,self.posture, self.troops(), self.activeCells,self.sleeper_cells, self.cadre, self.plots, markersStr)
 
 
-    elif self.type == "Non-Muslim" and self.type != "United States":
+    elif self.culture == "Non-Muslim" and self.culture != "United States":
       return "%s - Posture:%s\n   Active:%d Sleeper:%d Cadre:%d Plots:%d %s" % (self.name,self.posture, self.activeCells,self.sleeper_cells, self.cadre, self.plots, markersStr)
-    elif self.type == "Iran":
+    elif self.culture == "Iran":
       return "%s, %s\n   Active:%d Sleeper:%d Cadre:%d Plots:%d %s" % (self.name, self.govStr(),self.activeCells,self.sleeper_cells, self.cadre, self.plots, markersStr)
 
   def printCountry(self):
@@ -198,7 +204,7 @@ class Card:
     elif self.type == "US" and side == "US":
       if self.number == 1: # Backlash
         for country in app.map:
-          if (app.map[country].type != "Non-Muslim") and (app.map[country].plots > 0):
+          if (app.map[country].culture != "Non-Muslim") and (app.map[country].plots > 0):
             return True
         return False
       elif self.number == 2: # Biometrics
@@ -261,7 +267,7 @@ class Card:
         numMuslimCellCountries = 0
         for country in app.map:
           if app.map[country].totalCells(True) > 0:
-            if app.map[country].type == "Suni" or app.map[country].type == "Shia-Mix":
+            if app.map[country].culture == "Suni" or app.map[country].culture == "Shia-Mix":
               numMuslimCellCountries += 1
         return numMuslimCellCountries > 0
       elif self.number == 26: # Quartet
@@ -351,7 +357,7 @@ class Card:
       elif self.number == 46: # Sistani
         targetCountries = 0
         for country in app.map:
-          if app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Shia-Mix":
             if app.map[country].regimeChange > 0:
               if (app.map[country].totalCells(True)) > 0:
                 targetCountries += 1
@@ -483,7 +489,7 @@ class Card:
       elif self.number == 91: # Regional al-Qaeda
         num = 0
         for country in app.map:
-          if app.map[country].type == "Suni" or app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Suni" or app.map[country].culture == "Shia-Mix":
             if app.map[country].governance == 0:
               num += 1
         return num >= 2
@@ -520,7 +526,7 @@ class Card:
         return True
       elif self.number == 106: # Jaysh al-Mahdi
         for country in app.map:
-          if app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Shia-Mix":
             if app.map[country].troops() > 0 and app.map[country].totalCells() > 0:
               return True
         return False
@@ -566,7 +572,7 @@ class Card:
           possibles.append(countryObj.name)
         for country in possibles:
           if app.map[country].totalCells(True) > 0:
-            if app.map[country].type == "Non-Muslim":
+            if app.map[country].culture == "Non-Muslim":
               if app.map[country].posture == "Hard":
                 return True
             else:
@@ -576,7 +582,7 @@ class Card:
         if side == "US":
           for country in app.map:
             if app.map[country].plots > 0:
-              if app.map[country].type == "Non-Muslim" or app.map[country].alignment == "Ally":
+              if app.map[country].culture == "Non-Muslim" or app.map[country].alignment == "Ally":
                 return True
           return False
         else:
@@ -737,7 +743,7 @@ class Card:
     elif self.type == "US" and side == "US":
       if self.number == 1: # Backlash
         for country in app.map:
-          if (app.map[country].type != "Non-Muslim") and (app.map[country].plots > 0):
+          if (app.map[country].culture != "Non-Muslim") and (app.map[country].plots > 0):
             app.outputToHistory("Plot in Muslim country found. Select the plot. Backlash in play", True)
             app.backlashInPlay = True
             return True
@@ -972,10 +978,10 @@ class Card:
             if app.map[input].totalCells(True) == 0:
               print("%s has no cells." % input)
               print("")
-            elif app.map[input].type == "Iran":
+            elif app.map[input].culture == "Iran":
               print("Iran is not allowed.")
               print("")
-            elif app.map[input].type == "Non-Muslim":
+            elif app.map[input].culture == "Non-Muslim":
               print("Choose a Muslim country.")
               print("")
             else:
@@ -1292,7 +1298,7 @@ class Card:
       elif self.number == 46: # Sistani
         targetCountries = []
         for country in app.map:
-          if app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Shia-Mix":
             if app.map[country].regimeChange > 0:
               if (app.map[country].totalCells(True)) > 0:
                 targetCountries.append(country)
@@ -1612,7 +1618,7 @@ class Card:
         app.changePrestige(-1, False)
         possibles = []
         for country in app.map:
-          if app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Shia-Mix":
             possibles.append(country)
         target = random.choice(possibles)
         app.placeCells(target, 1)
@@ -1628,7 +1634,7 @@ class Card:
       elif self.number == 91: # Regional al-Qaeda
         possibles = []
         for country in app.map:
-          if app.map[country].type == "Suni" or app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Suni" or app.map[country].culture == "Shia-Mix":
             if app.map[country].governance == 0:
               possibles.append(country)
         random.shuffle(possibles)
@@ -1673,7 +1679,7 @@ class Card:
         app.outputToHistory("Scandinavia posture now %s." % posStr, False)
         possibles = []
         for country in app.map:
-          if app.map[country].type == "Suni" or app.map[country].type == "Shia-Mix":
+          if app.map[country].culture == "Suni" or app.map[country].culture == "Shia-Mix":
             if app.map[country].governance != 4:
               possibles.append(country)
         target = random.choice(possibles)
@@ -1736,13 +1742,13 @@ class Card:
                 threeAway.append(subCountryObj.name)
           possibles = []
           for country in oneAway:
-            if country not in possibles and app.map[country].totalCells(True) > 0 and app.map[country].type == "Shia-Mix":
+            if country not in possibles and app.map[country].totalCells(True) > 0 and app.map[country].culture == "Shia-Mix":
               possibles.append(country)
           for country in twoAway:
-            if country not in possibles and app.map[country].totalCells(True) > 0 and app.map[country].type == "Shia-Mix":
+            if country not in possibles and app.map[country].totalCells(True) > 0 and app.map[country].culture == "Shia-Mix":
               possibles.append(country)
           for country in threeAway:
-            if country not in possibles and app.map[country].totalCells(True) > 0 and app.map[country].type == "Shia-Mix":
+            if country not in possibles and app.map[country].totalCells(True) > 0 and app.map[country].culture == "Shia-Mix":
               possibles.append(country)
           if len(possibles) <= 0:
             app.outputToHistory("No Shia-Mix countries with cells within 3 countries of Lebanon.", True)
@@ -1781,7 +1787,7 @@ class Card:
             if input == "":
               print("")
             else:
-              if app.map[input].type != "Shia-Mix":
+              if app.map[input].culture != "Shia-Mix":
                 print("%s is not a Shia-Mix country." % input)
                 print("")
               else:
@@ -1807,7 +1813,7 @@ class Card:
         else:
           possibles = []
           for country in app.map:
-            if app.map[country].type == "Shia-Mix":
+            if app.map[country].culture == "Shia-Mix":
               possibles.append(country)
           target = random.choice(possibles)
           app.testCountry(target)
@@ -1815,7 +1821,7 @@ class Card:
           target = None
           goods = []
           for country in app.map:
-            if app.map[country].type == "Shia-Mix" or app.map[country].type == "Suni":
+            if app.map[country].culture == "Shia-Mix" or app.map[country].culture == "Suni":
               if app.map[country].governance == 1:
                 goods.append(country)
           if len(goods) > 1:
@@ -1829,7 +1835,7 @@ class Card:
           else:
             fairs = []
             for country in app.map:
-              if app.map[country].type == "Shia-Mix" or app.map[country].type == "Suni":
+              if app.map[country].culture == "Shia-Mix" or app.map[country].culture == "Suni":
                 if app.map[country].governance == 2:
                   fairs.append(country)
             if len(fairs) > 1:
@@ -1860,7 +1866,7 @@ class Card:
           target = None
           possibles = []
           for country in app.map:
-            if app.map[country].type == "Shia-Mix":
+            if app.map[country].culture == "Shia-Mix":
               if app.map[country].troops() > 0 and app.map[country].totalCells() > 0:
                 possibles.append(country)
           if len(possibles) == 1:
@@ -1881,7 +1887,7 @@ class Card:
         else:
           possibles = []
           for country in app.map:
-            if app.map[country].type == "Shia-Mix":
+            if app.map[country].culture == "Shia-Mix":
               possibles.append(country)
           target = random.choice(possibles)
           app.testCountry(target)
@@ -1889,7 +1895,7 @@ class Card:
           target = None
           goods = []
           for country in app.map:
-            if app.map[country].type == "Shia-Mix" or app.map[country].type == "Suni":
+            if app.map[country].culture == "Shia-Mix" or app.map[country].culture == "Suni":
               if app.map[country].governance == 1:
                 goods.append(country)
           if len(goods) > 1:
@@ -1903,7 +1909,7 @@ class Card:
           else:
             fairs = []
             for country in app.map:
-              if app.map[country].type == "Shia-Mix" or app.map[country].type == "Suni":
+              if app.map[country].culture == "Shia-Mix" or app.map[country].culture == "Suni":
                 if app.map[country].governance == 2:
                   fairs.append(country)
             if len(fairs) > 1:
@@ -2073,7 +2079,7 @@ class Card:
             possibles.append(countryObj.name)
           for country in possibles:
             if app.map[country].totalCells(True) > 0:
-              if app.map[country].type == "Non-Muslim":
+              if app.map[country].culture == "Non-Muslim":
                 if app.map[country].posture == "Hard":
                   targets.append(country)
               else:
@@ -2102,7 +2108,7 @@ class Card:
             possibles.append(countryObj.name)
           for country in possibles:
             if app.map[country].totalCells(True) > 0:
-              if app.map[country].type == "Non-Muslim":
+              if app.map[country].culture == "Non-Muslim":
                 if app.map[country].posture == "Hard":
                   targets.append(country)
               else:
@@ -2115,7 +2121,7 @@ class Card:
         if side == "US":
           for country in app.map:
             if app.map[country].plots > 0:
-              if app.map[country].alignment == "Ally" or app.map[country].type == "Non-Muslim":
+              if app.map[country].alignment == "Ally" or app.map[country].culture == "Non-Muslim":
                 numPlots = app.map[country].plots
                 app.map[country].plots = 0
                 app.outputToHistory("%d Plots removed from %s." % (numPlots, country), False)
@@ -2277,10 +2283,10 @@ class Labyrinth(cmd.Cmd):
       if (self.map[country].sleeper_cells > 0) or (self.map[country].activeCells > 0) or (self.map[country].troops_stationed > 0) or (self.map[country].aid > 0) or  (self.map[country].regimeChange > 0) or (self.map[country].cadre > 0) or (self.map[country].plots > 0):
         if (self.map[country].governance == 0):
           badCountry = True
-        if self.map[country].type == "Non-Muslim":
+        if self.map[country].culture == "Non-Muslim":
           if (self.map[country].posture == ""):
             badCountry = True
-        elif self.map[country].type != "Iran":
+        elif self.map[country].culture != "Iran":
           if (self.map[country].alignment == ""):
             badCountry = True
       if badCountry:
@@ -2303,46 +2309,13 @@ class Labyrinth(cmd.Cmd):
       print("")
 
   def mapSetup(self):
-    self.map["Canada"] = Country(self, "Canada", "Non-Muslim", "", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["United States"] = Country(self, "United States", "Non-Muslim", "Hard", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["United Kingdom"] = Country(self, "United Kingdom", "Non-Muslim", "", "", 1, False, 3, 0, 0, 0, False, 0)
-    self.map["Serbia"] = Country(self, "Serbia", "Non-Muslim", "", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["Israel"] = Country(self, "Israel", "Non-Muslim", "Hard", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["India"] = Country(self, "India", "Non-Muslim", "", "", 1, False, 0, 0, 0, 0, False, 0)
-    self.map["Scandinavia"] = Country(self, "Scandinavia", "Non-Muslim", "", "", 1, True, 0, 0, 0, 0, False, 0)
-    self.map["Eastern Europe"] = Country(self, "Eastern Europe", "Non-Muslim", "", "", 1, True, 0, 0, 0, 0, False, 0)
-    self.map["Benelux"] = Country(self, "Benelux", "Non-Muslim", "", "", 1, True, 0, 0, 0, 0, False, 0)
-    self.map["Germany"] = Country(self, "Germany", "Non-Muslim", "", "", 1, True, 0, 0, 0, 0, False, 0)
-    self.map["France"] = Country(self, "France", "Non-Muslim", "", "", 1, True, 2, 0, 0, 0, False, 0)
-    self.map["Italy"] = Country(self, "Italy", "Non-Muslim", "", "", 1, True, 0, 0, 0, 0, False, 0)
-    self.map["Spain"] = Country(self, "Spain", "Non-Muslim", "", "", 1, True, 2, 0, 0, 0, False, 0)
-    self.map["Russia"] = Country(self, "Russia", "Non-Muslim", "", "", 2, False, 0, 0, 0, 0, False, 0)
-    self.map["Caucasus"] = Country(self, "Caucasus", "Non-Muslim", "", "", 2, False, 0, 0, 0, 0, False, 0)
-    self.map["China"] = Country(self, "China", "Non-Muslim", "", "", 2, False, 0, 0, 0, 0, False, 0)
-    self.map["Kenya/Tanzania"] = Country(self, "Kenya/Tanzania", "Non-Muslim", "", "", 2, False, 0, 0, 0, 0, False, 0)
-    self.map["Thailand"] = Country(self, "Thailand", "Non-Muslim", "", "", 2, False, 0, 0, 0, 0, False, 0)
-    self.map["Philippines"] = Country(self, "Philippines", "Non-Muslim", "", "", 2, False, 3, 0, 0, 0, False, 0)
-    self.map["Morocco"] = Country(self, "Morocco", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Algeria/Tunisia"] = Country(self, "Algeria/Tunisia", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 2)
-    self.map["Libya"] = Country(self, "Libya", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 1)
-    self.map["Egypt"] = Country(self, "Egypt", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 3)
-    self.map["Sudan"] = Country(self, "Sudan", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 1)
-    self.map["Somalia"] = Country(self, "Somalia", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Jordan"] = Country(self, "Jordan", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Syria"] = Country(self, "Syria", "Suni", "", 0, 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Central Asia"] = Country(self, "Central Asia", "Suni", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Indonesia/Malaysia"] = Country(self, "Indonesia/Malaysia", "Suni", "", "", 0, False, 0, 0, 0, 0, True, 3)
-    self.map["Turkey"] = Country(self, "Turkey", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Lebanon"] = Country(self, "Lebanon", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Yemen"] = Country(self, "Yemen", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Iraq"] = Country(self, "Iraq", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, True, 3)
-    self.map["Saudi Arabia"] = Country(self, "Saudi Arabia", "Shia-Mix", "", "", 0, False, 0, 2, 0, 0, True, 3)
-    self.map["Gulf States"] = Country(self, "Gulf States", "Shia-Mix", "", "", 0, False, 0, 2, 0, 0, True, 3)
-    self.map["Pakistan"] = Country(self, "Pakistan", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 2)
-    self.map["Afghanistan"] = Country(self, "Afghanistan", "Shia-Mix", "", "", 0, False, 0, 0, 0, 0, False, 1)
-    self.map["Iran"] = Country(self, "Iran", "Iran", "", "Fair", 2, False, 0, 0, 0, 0, False, 0)
+    countries = None
+    with open(MAP_FILE, 'r') as f :
+      countries = yaml.load(f)
 
-  #   self.map["Canada"] = Country("Canada", "Non-Muslim", "", "", 1, False, 0, 0, 0, 0, False, 0)
+    for country, stats in countries.items() :
+      self.map[country] = Country(self, country, stats)
+      
     self.map["Canada"].links.append(self.map["United States"])
     self.map["Canada"].links.append(self.map["United Kingdom"])
     self.map["Canada"].schengenLink = True
@@ -2519,16 +2492,16 @@ class Labyrinth(cmd.Cmd):
       self.testCountry(country) 
 
   def num_good_resources(self):
-    return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.GOOD and (c.type == "Shia-Mix" or c.type == "Suni")])
+    return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.GOOD and (c.culture == "Shia-Mix" or c.culture == "Suni")])
 
   def num_islamist_resources(self):
-    return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.ISLAMIST_RULE and (c.type == "Shia-Mix" or c.type == "Suni")])
+    return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.ISLAMIST_RULE and (c.culture == "Shia-Mix" or c.culture == "Suni")])
 
   def num_good_countries(self):
-    return len([ n for n, c in self.map.items() if c.governance <= Governance.FAIR and (c.type == "Shia-Mix" or c.type == "Suni") and c.governance != Governance.TEST ])
+    return len([ n for n, c in self.map.items() if c.governance <= Governance.FAIR and (c.culture == "Shia-Mix" or c.culture == "Suni") and c.governance != Governance.TEST ])
 
   def num_poor_countries(self):
-    return len([ n for n, c in self.map.items() if c.governance > Governance.FAIR and (c.type == "Shia-Mix" or c.type == "Suni") ])
+    return len([ n for n, c in self.map.items() if c.governance > Governance.FAIR and (c.culture == "Shia-Mix" or c.culture == "Suni") ])
 
   def gwot(self):
     p = 0
@@ -2554,8 +2527,8 @@ class Labyrinth(cmd.Cmd):
     print("US Prestige: %d \n" % self.prestige)
 
   def scenarioSetup(self):
-    scenarios = ''
-    with open('scenarios.yml', 'r') as f:
+    scenarios = None
+    with open(SCENARIOS_FILE, 'r') as f:
       scenarios = yaml.load(f)
 
     if self.scenario == 1 :
@@ -2941,7 +2914,7 @@ class Labyrinth(cmd.Cmd):
   def gwotPenalty(self):
     worldPos = 0
     for country in self.map:
-      if self.map[country].type == "Non-Muslim" and self.map[country].name != "United States":
+      if self.map[country].culture == "Non-Muslim" and self.map[country].name != "United States":
         if self.map[country].posture == "Hard":
           worldPos += 1
         elif self.map[country].posture == "Soft":
@@ -3081,7 +3054,7 @@ class Labyrinth(cmd.Cmd):
     numDis = 0
     for country in self.map:
       if self.map[country].totalCells(False) > 0 or self.map[country].cadre > 0:
-        if self.map[country].troops() > 0 or self.map[country].type == "Non-Muslim" or self.map[country].alignment == "Ally":
+        if self.map[country].troops() > 0 or self.map[country].culture == "Non-Muslim" or self.map[country].alignment == "Ally":
           numDis += 1
     return numDis
 
@@ -3370,7 +3343,7 @@ class Labyrinth(cmd.Cmd):
     possible = []
     plusCellsNeeded = self.extraCellsNeededForMajorJihad()
     for country in self.map:
-      if self.map[country].type == "Suni" or self.map[country].type == "Shia-Mix":
+      if self.map[country].culture == "Suni" or self.map[country].culture == "Shia-Mix":
         if "Benazir Bhutto" in self.markers and country == "Pakistan":
           continue
         if self.map[country].governance != 4:
@@ -3412,7 +3385,7 @@ class Labyrinth(cmd.Cmd):
         if country == "Saudi Arabia" or self.isAdjacent(country, "Saudi Arabia"):
           if self.map[country].troops() > 0:
             possible.append(country)
-      elif (self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni") and (self.map[country].governance == 1 or self.map[country].governance == 2) and (self.map[country].totalCells(True) > 0):
+      elif (self.map[country].culture == "Shia-Mix" or self.map[country].culture == "Suni") and (self.map[country].governance == 1 or self.map[country].governance == 2) and (self.map[country].totalCells(True) > 0):
         if "Benazir Bhutto" in self.markers and country == "Pakistan":
           continue
         possible.append(country)
@@ -3470,8 +3443,8 @@ class Labyrinth(cmd.Cmd):
           countryScores[country] = 10000000
         elif (self.map[country].governance != 4) and (self.map[country].regimeChange <= 0):
           self.debugprint(("b"))
-          if self.map[country].recruit > 0:
-            countryScores[country] = (self.map[country].recruit * 1000000)
+          if self.map[country].recruit_req > 0:
+            countryScores[country] = (self.map[country].recruit_req * 1000000)
           else:
             countryScores[country] = (self.map[country].governance * 1000000)
     for country in countryScores:
@@ -3539,8 +3512,8 @@ class Labyrinth(cmd.Cmd):
         while self.numCellsAvailable(isMadrassas or isJihadistVideos) > 0 and opsRemaining > 0:
           if recruitOverride:
             recVal = recruitOverride
-          elif self.map[country].recruit > 0:
-            recVal = self.map[country].recruit
+          elif self.map[country].recruit_req > 0:
+            recVal = self.map[country].recruit_req
           else:
             recVal = self.map[country].governance
           if rolls[i] <= recVal:
@@ -3684,7 +3657,7 @@ class Labyrinth(cmd.Cmd):
   # A Good or Fair Muslim country with at least one cell adjacent.
     subdests = []
     for country in self.map:
-      if ((self.map[country].governance == 1) or (self.map[country].governance == 2)) and ((self.map[country].type == "Suni") or (self.map[country].type == "Shia-Mix")):
+      if ((self.map[country].governance == 1) or (self.map[country].governance == 2)) and ((self.map[country].culture == "Suni") or (self.map[country].culture == "Shia-Mix")):
         if self.adjacentCountryHasCell(country):
           if (not isRadicalization) and ("Biometrics" in self.lapsing) and (not self.adjacentCountryHasCell(country)):
             continue
@@ -3700,13 +3673,13 @@ class Labyrinth(cmd.Cmd):
     subdests = []
     if self.map["United States"].posture == "Hard":
       for country in self.map:
-        if self.map[country].type == "Non-Muslim" and self.map[country].posture == "":
+        if self.map[country].culture == "Non-Muslim" and self.map[country].posture == "":
           if (not isRadicalization) and ("Biometrics" in self.lapsing) and (not self.adjacentCountryHasCell(country)):
             continue
           subdests.append(country)
     else:
       for country in self.map:
-        if country != "United States" and self.map[country].type == "Non-Muslim" and self.map[country].posture == "Soft":
+        if country != "United States" and self.map[country].culture == "Non-Muslim" and self.map[country].posture == "Soft":
           if (not isRadicalization) and ("Biometrics" in self.lapsing) and (not self.adjacentCountryHasCell(country)):
             continue
           subdests.append(country)
@@ -3882,7 +3855,7 @@ class Labyrinth(cmd.Cmd):
 
   def testCountry(self, country):
     # Country testing if necessary
-    if self.map[country].type == "Non-Muslim" and self.map[country].posture == "":
+    if self.map[country].culture == "Non-Muslim" and self.map[country].posture == "":
       testRoll = random.randint(1,6)
       if testRoll <= 4:
         self.map[country].posture = "Soft"
@@ -3949,7 +3922,7 @@ class Labyrinth(cmd.Cmd):
     dict["Fair"] = []
     dict["Poor"] = []
     for country in self.map:
-      if (country != "United States") and (self.map[country].type == "Non-Muslim"):
+      if (country != "United States") and (self.map[country].culture == "Non-Muslim"):
         if self.map[country].governance == 1:
           dict["Good"].append(country)
         elif self.map[country].governance == 2:
@@ -3964,7 +3937,7 @@ class Labyrinth(cmd.Cmd):
     dict["Fair"] = []
     dict["Poor"] = []
     for country in self.map:
-      if self.map[country].type != "Non-Muslim":
+      if self.map[country].culture != "Non-Muslim":
         if self.map[country].governance == 1:
           dict["Good"].append(country)
         elif self.map[country].governance == 2:
@@ -4227,7 +4200,7 @@ class Labyrinth(cmd.Cmd):
     while opsRemaining > 0:
       possibles = []
       for country in self.map:
-        if (self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni") and (self.map[country].governance == 1 or self.map[country].governance == 2):
+        if (self.map[country].culture == "Shia-Mix" or self.map[country].culture == "Suni") and (self.map[country].governance == 1 or self.map[country].governance == 2):
           possibles.append(country)
       if len(possibles) == 0:
         self.outputToHistory("--> No remaining Good or Fair countries.", True)
@@ -4258,7 +4231,7 @@ class Labyrinth(cmd.Cmd):
         else:
           self.map["United States"].posture = "Hard"
         self.outputToHistory("US Posture now %s" % self.map["United States"].posture, True)
-    elif self.map[country].type != "Non-Muslim":
+    elif self.map[country].culture != "Non-Muslim":
       if not isBacklash:
         if self.map[country].governance == 1:
           self.changeFunding(2)
@@ -4301,7 +4274,7 @@ class Labyrinth(cmd.Cmd):
           self.map[country].governance += 1
           successes -= 1
           self.outputToHistory("Governance to %s" % self.map[country].govStr(), True)
-    elif self.map[country].type == "Non-Muslim":
+    elif self.map[country].culture == "Non-Muslim":
       if country == "Israel" and "Abbas" in self.markers:
         self.markers.remove("Abbas")
         self.outputToHistory("Abbas no longer in play.", True)
@@ -4525,10 +4498,10 @@ class Labyrinth(cmd.Cmd):
     print("--------------------")
     for country in self.map:
       if self.map[country].sleeper_cells + self.map[country].activeCells > 0 or self.map[country].cadre > 0:
-        if self.map[country].troops() > 0 or self.map[country].type == "Non-Muslim" or self.map[country].alignment == "Ally":
+        if self.map[country].troops() > 0 or self.map[country].culture == "Non-Muslim" or self.map[country].alignment == "Ally":
           postureStr = ""
           troopsStr = ""
-          if self.map[country].type == "Non-Muslim":
+          if self.map[country].culture == "Non-Muslim":
             postureStr = ", Posture %s" % self.map[country].posture
           else:
             troopsStr = ", Troops: %d" % self.map[country].troops()
@@ -4543,13 +4516,13 @@ class Labyrinth(cmd.Cmd):
       if self.map[country].alignment == "Neutral" or self.map[country].alignment == "Ally" or self.map[country].governance == 0:
         print("%s, %s %s - %d Active Cells, %d Sleeper Cells, %d Cadre, %d troops" % (country, self.map[country].govStr(), self.map[country].alignment, self.map[country].activeCells, self.map[country].sleeper_cells, self.map[country].cadre, self.map[country].troops()))
     for country in self.map:
-      if self.map[country].type == "Non-Muslim" and country != "United States" and self.map[country].posture == "Hard":
+      if self.map[country].culture == "Non-Muslim" and country != "United States" and self.map[country].posture == "Hard":
         print("%s, Posture %s" % (country, self.map[country].posture))
     for country in self.map:
-      if self.map[country].type == "Non-Muslim" and country != "United States" and self.map[country].posture == "Soft":
+      if self.map[country].culture == "Non-Muslim" and country != "United States" and self.map[country].posture == "Soft":
         print("%s, Posture %s" % (country, self.map[country].posture))
     for country in self.map:
-      if self.map[country].type == "Non-Muslim" and country != "United States" and self.map[country].posture == "":
+      if self.map[country].culture == "Non-Muslim" and country != "United States" and self.map[country].posture == "":
         print("%s, Untested" % country)
 
   def listPlotCountries(self, na = None):
@@ -4630,7 +4603,7 @@ class Labyrinth(cmd.Cmd):
     print("---------------------------")
     for country in self.map:
       if self.map[country].totalCells(True) > 0:
-        if self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni":
+        if self.map[country].culture == "Shia-Mix" or self.map[country].culture == "Suni":
           self.map[country].printCountry()
     print("")
 
@@ -4648,7 +4621,7 @@ class Labyrinth(cmd.Cmd):
     print("Shia-Mix Regime Change Countries with Cells")
     print("-------------------------------------------")
     for country in self.map:
-      if self.map[country].type == "Shia-Mix":
+      if self.map[country].culture == "Shia-Mix":
         if self.map[country].regimeChange > 0:
           if (self.map[country].totalCells(True)) > 0:
             self.map[country].printCountry()
@@ -4659,7 +4632,7 @@ class Labyrinth(cmd.Cmd):
     print("Shia-Mix Countries")
     print("------------------")
     for country in self.map:
-      if self.map[country].type == "Shia-Mix":
+      if self.map[country].culture == "Shia-Mix":
         self.map[country].printCountry()
     print("")
 
@@ -4668,7 +4641,7 @@ class Labyrinth(cmd.Cmd):
     print("Shia-Mix Countries with Cells and Troops")
     print("----------------------------------------")
     for country in self.map:
-      if self.map[country].type == "Shia-Mix":
+      if self.map[country].culture == "Shia-Mix":
         if self.map[country].troops() > 0 and self.map[country].totalCells() > 0:
           self.map[country].printCountry()
     print("")
@@ -4691,7 +4664,7 @@ class Labyrinth(cmd.Cmd):
       possibles.append(countryObj.name)
     for country in possibles:
       if self.map[country].totalCells(True) > 0:
-        if self.map[country].type == "Non-Muslim":
+        if self.map[country].culture == "Non-Muslim":
           if self.map[country].posture == "Hard":
             self.map[country].printCountry()
         else:
@@ -4732,7 +4705,7 @@ class Labyrinth(cmd.Cmd):
     islamC = 0
     worldPos = 0
     for country in self.map:
-      if self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni":
+      if self.map[country].culture == "Shia-Mix" or self.map[country].culture == "Suni":
         if self.map[country].governance == 1:
           goodC += 1
           goodRes += self.countryResources(country)
@@ -4743,7 +4716,7 @@ class Labyrinth(cmd.Cmd):
         elif self.map[country].governance == 4:
           islamC += 1
           islamRes += self.countryResources(country)
-      elif self.map[country].type != "Iran" and self.map[country].name != "United States":
+      elif self.map[country].culture != "Iran" and self.map[country].name != "United States":
         if self.map[country].posture == "Hard":
           worldPos += 1
         elif self.map[country].posture == "Soft":
@@ -4752,7 +4725,7 @@ class Labyrinth(cmd.Cmd):
     print("GOOD GOVERNANCE")
     num = 0
     for country in self.map:
-      if self.map[country].type != "Non-Muslim" and self.map[country].governance == 1:
+      if self.map[country].culture != "Non-Muslim" and self.map[country].governance == 1:
         num += 1
         self.map[country].printCountry()
     if not num:
@@ -4761,7 +4734,7 @@ class Labyrinth(cmd.Cmd):
     print("FAIR GOVERNANCE")
     num = 0
     for country in self.map:
-      if self.map[country].type != "Non-Muslim" and self.map[country].governance == 2:
+      if self.map[country].culture != "Non-Muslim" and self.map[country].governance == 2:
         num += 1
         self.map[country].printCountry()
     if not num:
@@ -4770,7 +4743,7 @@ class Labyrinth(cmd.Cmd):
     print("POOR GOVERNANCE")
     num = 0
     for country in self.map:
-      if self.map[country].type != "Non-Muslim" and self.map[country].governance == 3:
+      if self.map[country].culture != "Non-Muslim" and self.map[country].governance == 3:
         num += 1
         self.map[country].printCountry()
     if not num:
@@ -4779,7 +4752,7 @@ class Labyrinth(cmd.Cmd):
     print("ISLAMIC RULE")
     num = 0
     for country in self.map:
-      if self.map[country].type != "Non-Muslim" and self.map[country].governance == 4:
+      if self.map[country].culture != "Non-Muslim" and self.map[country].governance == 4:
         num += 1
         self.map[country].printCountry()
     if not num:
@@ -4983,7 +4956,7 @@ class Labyrinth(cmd.Cmd):
         elif "FATA" in self.map[input].markers and self.map[input].regimeChange == 0:
           print("No disrupt allowed due to FATA.")
           print("")
-        elif self.map[input].troops() > 0 or self.map[input].type == "Non-Muslim" or self.map[input].alignment == "Ally":
+        elif self.map[input].troops() > 0 or self.map[input].culture == "Non-Muslim" or self.map[input].alignment == "Ally":
           #print("Disrupt in %s - %d Active Cells, %d Sleeper Cells" % (input, self.map[input].activeCells, self.map[input].sleeper_cells))
           print("")
           where = input
@@ -5012,14 +4985,14 @@ class Labyrinth(cmd.Cmd):
         print("")
         return
       else:
-        if self.map[input].type == "Non-Muslim" and input != "United States":
+        if self.map[input].culture == "Non-Muslim" and input != "United States":
           where = input
         elif self.map[input].alignment == "Ally" or self.map[input].alignment == "Neutral" or self.map[input].governance == 0:
           where = input
         else:
           print("Country not eligible for War of Ideas.")
           print("")
-    if self.map[where].type == "Non-Muslim" and input != "United States": # Non-Muslim
+    if self.map[where].culture == "Non-Muslim" and input != "United States": # Non-Muslim
       postureRoll = self.getRollFromUser("Enter Posture Roll or r to have program roll: ")
       if postureRoll > 4:
         self.map[where].posture = "Hard"
@@ -5324,7 +5297,7 @@ class Labyrinth(cmd.Cmd):
         plotType = self.getPlotTypeFromUser("Enter Plot type from %s: " % country)
         print("")
         isBacklash = False
-        if self.backlashInPlay and (self.map[country].type != 'Non-Muslim'):
+        if self.backlashInPlay and (self.map[country].culture != 'Non-Muslim'):
           isBacklash = self.getYesNoFromUser("Was this plot selected with backlash (y/n): ")
         postureRoll = 0
         usPrestigeRolls = []
@@ -5337,7 +5310,7 @@ class Labyrinth(cmd.Cmd):
             usPrestigeRolls.append(random.randint(1,6))
             usPrestigeRolls.append(random.randint(1,6))
             usPrestigeRolls.append(random.randint(1,6))
-        elif self.map[country].type != "Non-Muslim":
+        elif self.map[country].culture != "Non-Muslim":
           if country != "Iran":
             numRolls = 0
             if plotType == "WMD":
@@ -5346,7 +5319,7 @@ class Labyrinth(cmd.Cmd):
               numRolls = plotType
             for i in range(numRolls):
               govRolls.append(random.randint(1,6))
-        elif self.map[country].type == "Non-Muslim":
+        elif self.map[country].culture == "Non-Muslim":
           postureRoll = random.randint(1,6)
           if self.map[country].schengen:
             schChoices = []
@@ -5391,7 +5364,7 @@ class Labyrinth(cmd.Cmd):
     self.outputToHistory("Islamic Rule - US Prestige now %d" % self.prestige, False)
     worldPos = 0
     for country in self.map:
-      if not (self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni") and self.map[country].type != "Iran" and self.map[country].name != "United States":
+      if not (self.map[country].culture == "Shia-Mix" or self.map[country].culture == "Suni") and self.map[country].culture != "Iran" and self.map[country].name != "United States":
         if self.map[country].posture == "Hard":
           worldPos += 1
         elif self.map[country].posture == "Soft":
@@ -5410,7 +5383,7 @@ class Labyrinth(cmd.Cmd):
     islamC = 0
     worldPos = 0
     for country in self.map:
-      if self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni":
+      if self.map[country].culture == "Shia-Mix" or self.map[country].culture == "Suni":
         if self.map[country].governance == 1:
           goodC += 1
           goodRes += self.countryResources(country)
