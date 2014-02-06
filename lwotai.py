@@ -29,17 +29,23 @@ except:
 import os.path
 import yaml
 from enum import IntEnum
+from enum import Enum
 
 class Governance(IntEnum):
   ISLAMIST_RULE = 4
   POOR = 3
   FAIR = 2
   GOOD = 1
+  TEST = 0
 
 class Alignment(IntEnum):
   ADVERSARY = 1
   NEUTRAL = 2
   ALLY = 3
+
+class Posture(Enum):
+  HARD = 'Hard'
+  SOFT = 'Soft'
 
 COUNTRY_STATS = {'governance': Governance, 'alignment': Alignment}
 
@@ -49,7 +55,7 @@ class Country:
   type = ""
   posture = ""
   alignment = ""
-  governance = 0
+  governance = Governance.TEST
   schengen = False
   recruit = 0
   troops_stationed = 0
@@ -2508,6 +2514,45 @@ class Labyrinth(cmd.Cmd):
       self.testCountry(country)
       self.placeCells(country, num_cell_per_country)
     
+  def test_countries(self, countries):
+    for country in countries :
+      self.testCountry(country) 
+
+  def num_good_resources(self):
+    return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.GOOD and (c.type == "Shia-Mix" or c.type == "Suni")])
+
+  def num_islamist_resources(self):
+    return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.ISLAMIST_RULE and (c.type == "Shia-Mix" or c.type == "Suni")])
+
+  def num_good_countries(self):
+    return len([ n for n, c in self.map.items() if c.governance <= Governance.FAIR and (c.type == "Shia-Mix" or c.type == "Suni") and c.governance != Governance.TEST ])
+
+  def num_poor_countries(self):
+    return len([ n for n, c in self.map.items() if c.governance > Governance.FAIR and (c.type == "Shia-Mix" or c.type == "Suni") ])
+
+  def gwot(self):
+    p = 0
+    postures = { 'Hard': 1, 'Soft': -1 }
+
+    for n, c in self.map.items():
+      p += postures.get(c.posture, 0)
+
+    if self.map["United States"].posture == "Soft": p += 1
+    else: p -= 1
+    return ("Hard" if p > 0 else "Soft", min(abs(p),3))
+
+  def print_board_trackers(self):
+    print("Good Resources   : %d" % self.num_good_resources())
+    print("Islamic Resources: %d" % self.num_islamist_resources())
+    print("---")
+    print("Good/Fair Countries   : %d" % self.num_good_countries())
+    print("Poor/Islamic Countries: %d" % self.num_poor_countries())
+    print("")
+    print("GWOT")
+    print("US Posture: %s" % self.map["United States"].posture)
+    print("World Posture: %s %d" % self.gwot())
+    print("US Prestige: %d \n" % self.prestige)
+
   def scenarioSetup(self):
     scenarios = ''
     with open('scenarios.yml', 'r') as f:
@@ -2526,51 +2571,10 @@ class Labyrinth(cmd.Cmd):
     elif self.scenario == 4:
       self.setup_board(scenarios['mission_accomplished'])
 
-      possibles = []
-      for country in self.map:
-        if self.map[country].schengen:
-          self.testCountry(country)
+      self.test_countries([n for n, c in self.map.items() if c.schengen])
       print("Remove the cards Patriot Act, Tora Bora, NEST, Abu Sayyaf, KSM and Iraqi WMD from the game. \n")
 
-    goodRes = 0
-    islamRes = 0
-    goodC = 0
-    islamC = 0
-    worldPos = 0
-    for country in self.map:
-      if self.map[country].type == "Shia-Mix" or self.map[country].type == "Suni":
-        if self.map[country].governance == 1:
-          goodC += 1
-          goodRes += self.countryResources(country)
-        elif self.map[country].governance == 2:
-          goodC += 1
-        elif self.map[country].governance == 3:
-          islamC += 1
-        elif self.map[country].governance == 4:
-          islamC += 1
-          islamRes += self.countryResources(country)
-      elif self.map[country].type != "Iran" and self.map[country].name != "United States":
-        if self.map[country].posture == "Hard":
-          worldPos += 1
-        elif self.map[country].posture == "Soft":
-          worldPos -= 1
-    print("Good Resources   : %d" % goodRes)
-    print("Islamic Resources: %d" % islamRes)
-    print("---")
-    print("Good/Fair Countries   : %d" % goodC)
-    print("Poor/Islamic Countries: %d" % islamC)
-    print("")
-    print("GWOT")
-    print("US Posture: %s" % self.map["United States"].posture)
-    if worldPos > 0:
-      worldPosStr = "Hard"
-    elif worldPos < 0:
-      worldPosStr = "Soft"
-    else:
-      worldPosStr = "Even"
-    print("World Posture: %s %d" % (worldPosStr, abs(worldPos)))
-    print("US Prestige: %d" % self.prestige)
-    print("")
+    self.print_board_trackers()
 
 
   def testScenarioSetup(self):
