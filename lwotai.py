@@ -20,6 +20,9 @@ ROLLBACK_FILE = "turn."
 MAP_FILE = "map.yml"
 SCENARIOS_FILE = "scenarios.yml"
 
+TROOPS_MAX = 15
+CELLS_MAX  = 15
+
 import sys
 import cmd
 import random
@@ -32,6 +35,18 @@ import os.path
 import yaml
 from enum import IntEnum
 from enum import Enum
+
+CONFLICT_STATUS = {
+    range(11,16): 9 # Low Intensity
+  , range(6,11): 8  # War
+  , range(1,6): 7   # Overstretched
+}
+
+FUNDING_STATUS = {
+    range(7,10): 9 # Ample
+  , range(4,7): 8  # Moderate
+  , range(1,4): 7  # Tight
+}
 
 class Governance(IntEnum):
   ISLAMIST_RULE = 4
@@ -2164,6 +2179,60 @@ class Card:
       app.outputToHistory("Place marker for card.", True)
     if self.lapsing:
       app.outputToHistory("Place card in Lapsing.", True)
+
+class TroopTrack():
+  def __init__(self, troops) :
+    self.troops = troops
+    self.troops_max = troops
+
+  def remove_troops(num) :
+    if num <= self.troops :
+      self.troops -= num 
+    else: raise Exception("Not enough available troops!")
+
+  def add_troops(num) :
+    if self.troops + num <= self.troops_max :
+      self.troops += num 
+    else: raise Exception("Over MAX TROOPS!")
+
+  def draw_amount() :
+    for r, d in CONFLICT_STATUS :
+      if self.troops in r :
+        return d
+    raise Exception("Unknown card draw amount!")
+
+class FundingTrack():
+  def __init__(self, funding, cells) :
+    self.funding = funding
+    self.cells = cells
+    self.cells_max = cells
+
+  def remove_cells(num) :
+    if num <= self.cells :
+      self.cells -= num 
+    else: raise Exception("Not enough available cells!")
+
+  def add_cells(num) :
+    if self.cells + num <= self.cells_max :
+      self.cells += num 
+    else: raise Exception("Over MAX cells!")
+
+  def draw_amount() :
+    for r, d in FUNDING_STATUS :
+      if self.cells in r :
+        return d
+    raise Exception("Unknown card draw amount!")
+
+class Board():
+  def __init__(self, scenario) :
+    self.troop_track = TroopTrack(TROOPS_MAX)
+    self.funding_track = FundingTrack(CELLS_MAX)
+    self.deck = {}
+    self.world
+    self.markers = []
+    self.lapsing = []
+    self.prestige = 0
+    self.gwot_relations = {}
 
 class Labyrinth(cmd.Cmd):
 

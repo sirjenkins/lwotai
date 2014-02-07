@@ -5,7 +5,7 @@ quick fixes:
     (done) need method to take list of countries and test posture
     * prettify scenario setup stdout
     * get scenario selection menu to derive from scenarios.yml
-    * map setup
+    (done) map setup
   refactor cards
     * tie setup events to removal of cards
     * needs a dsl instead of per card logic
@@ -16,4 +16,5 @@ quick fixes:
     * stick mechanics from card in board class
   extract jihadist ai into jihadist bot class
 
-* fix saving  
+* fix saving
+* colorize output
