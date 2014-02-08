@@ -2188,11 +2188,13 @@ class TroopTrack():
   def remove_troops(num) :
     if num <= self.troops :
       self.troops -= num 
+      return num
     else: raise Exception("Not enough available troops!")
 
   def add_troops(num) :
     if self.troops + num <= self.troops_max :
       self.troops += num 
+      return num
     else: raise Exception("Over MAX TROOPS!")
 
   def draw_amount() :
@@ -2210,11 +2212,13 @@ class FundingTrack():
   def remove_cells(num) :
     if num <= self.cells :
       self.cells -= num 
+      return num
     else: raise Exception("Not enough available cells!")
 
   def add_cells(num) :
     if self.cells + num <= self.cells_max :
       self.cells += num 
+      return num
     else: raise Exception("Over MAX cells!")
 
   def draw_amount() :
@@ -2224,15 +2228,29 @@ class FundingTrack():
     raise Exception("Unknown card draw amount!")
 
 class Board():
-  def __init__(self, scenario) :
+  def __init__(self, scenario, world_config, theapp) :
     self.troop_track = TroopTrack(TROOPS_MAX)
-    self.funding_track = FundingTrack(CELLS_MAX)
-    self.deck = {}
-    self.world
+    self.funding_track = FundingTrack(scenario['funding'], CELLS_MAX)
     self.markers = []
     self.lapsing = []
     self.prestige = 0
-    self.gwot_relations = {}
+    self.deck = {}
+    self.gwot_relations = { }
+    self.app = theapp
+    self.world = self.world_setup(world_config)
+
+  def world_setup(self, world_config) :
+    world = {}
+    for country, stats in world_config.items() :
+      world[country] = Country(self.app, country, stats)
+
+    for country in world_config.keys() :
+      for adj in world_config[country]['adjacent_countries'] :
+        if adj == 'Schengen' :
+          world[country].schengenLink = True
+        else :
+          world[country].links.append(world[adj])
+    return world
 
 class Labyrinth(cmd.Cmd):
 
@@ -2262,6 +2280,27 @@ class Labyrinth(cmd.Cmd):
   def __init__(self, theScenario, theIdeology, setupFuntion = None, testUserInput = []):
     cmd.Cmd.__init__(self)
     self.scenario = theScenario
+
+    world_config = ''
+    scenario_config = ''
+
+    with open(SCENARIOS_FILE, 'r') as f:
+      scenario_config = yaml.load(f)
+
+    if self.scenario == 1 :
+      scenario_config = scenario_config['lets_roll']
+    elif self.scenario == 2 :
+      scenario_config = scenario_config['you_can_call_me_al']
+    elif self.scenario == 3:
+      scenario_config = scenario_config['anaconda']
+    elif self.scenario == 4:
+      scenario_config = scenario_config['mission_accomplished']
+
+    with open(MAP_FILE, 'r') as f :
+      world_config = yaml.load(f)
+
+    self.board = Board(scenario_config, world_config, self)
+    self.map = self.board.world
     self.ideology = theIdeology
     self.prestige = 0
     self.troops = 0
@@ -2272,8 +2311,7 @@ class Labyrinth(cmd.Cmd):
     self.uCard = 1
     self.jCard = 1
     self.phase = ""
-    self.map = {}
-    self.map_setup()
+  #  self.map_setup()
     self.history = []
     self.markers = []
     self.lapsing = []
