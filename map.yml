@@ -209,7 +209,7 @@
 
 "Morocco":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -220,7 +220,7 @@
 
 "Algeria/Tunisia":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -231,7 +231,7 @@
 
 "Libya":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -242,7 +242,7 @@
 
 "Egypt":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -253,7 +253,7 @@
 
 "Sudan":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -264,7 +264,7 @@
 
 "Somalia":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -275,7 +275,7 @@
 
 "Jordan":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -286,7 +286,7 @@
 
 "Syria":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -297,7 +297,7 @@
 
 "Central Asia":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -308,7 +308,7 @@
 
 "Indonesia/Malaysia":
   culture: "Suni"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -319,7 +319,7 @@
 
 "Turkey":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -330,7 +330,7 @@
 
 "Lebanon":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -341,7 +341,7 @@
 
 "Yemen":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -352,7 +352,7 @@
 
 "Iraq":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -363,7 +363,7 @@
 
 "Saudi Arabia":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -374,7 +374,7 @@
 
 "Gulf States":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -385,7 +385,7 @@
 
 "Pakistan":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -396,7 +396,7 @@
 
 "Afghanistan":
   culture: "Shia-Mix"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: TEST
   schengen: False
@@ -407,7 +407,7 @@
 
 "Iran":
   culture: "Iran"
-  posture: TEST
+  posture: NO_POS
   alignment: TEST
   governance: FAIR
   schengen: False

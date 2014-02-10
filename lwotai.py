@@ -48,6 +48,13 @@ FUNDING_STATUS = {
   , range(1,4): 7  # Tight
 }
 
+PRESTIGE_STATUS = {
+    range(1,4): -1    # Low
+  , range(4,7): 0     # Moderate
+  , range(7,10): 1    # High
+  , range(10,13): -1  # Very High
+}
+
 class Governance(IntEnum):
   ISLAMIST_RULE = 4
   POOR = 3
@@ -65,8 +72,16 @@ class Posture(Enum):
   HARD = 'Hard'
   SOFT = 'Soft'
   TEST = '??'
+  NO_POS = None
 
 COUNTRY_STATS = {'governance': Governance, 'alignment': Alignment}
+POSTURE_DIVIDE = 4
+
+class UnknownCountry(Exception):
+  def __init__(self, value):
+    self.value = value
+  def __str__(self):
+    return repr(self.value)
 
 class Country:
   app = None
@@ -2185,19 +2200,19 @@ class TroopTrack():
     self.troops = troops
     self.troops_max = troops
 
-  def remove_troops(num) :
+  def remove_troops(self, num) :
     if num <= self.troops :
       self.troops -= num 
       return num
     else: raise Exception("Not enough available troops!")
 
-  def add_troops(num) :
+  def add_troops(self, num) :
     if self.troops + num <= self.troops_max :
       self.troops += num 
       return num
     else: raise Exception("Over MAX TROOPS!")
 
-  def draw_amount() :
+  def draw_amount(self) :
     for r, d in CONFLICT_STATUS :
       if self.troops in r :
         return d
@@ -2209,35 +2224,87 @@ class FundingTrack():
     self.cells = cells
     self.cells_max = cells
 
-  def remove_cells(num) :
+  def remove_cells(self, num) :
     if num <= self.cells :
       self.cells -= num 
       return num
     else: raise Exception("Not enough available cells!")
 
-  def add_cells(num) :
+  def add_cells(self, num) :
     if self.cells + num <= self.cells_max :
       self.cells += num 
       return num
     else: raise Exception("Over MAX cells!")
 
-  def draw_amount() :
+  def draw_amount(self) :
     for r, d in FUNDING_STATUS :
       if self.cells in r :
         return d
     raise Exception("Unknown card draw amount!")
 
+class PrestigeTrack():
+  def __init__(self, prestige):
+    self.prestige = prestige
+
+  def set_prestige(self, num):
+    for r, d in PRESTIGE_STATUS.items() : 
+      if num in r :
+        self.prestige = num
+        return num
+    raise Exception("Out of bounds prestige!")
+
+  def get_prestige(self): return self.prestige
+
+  def get_prestige_modifier(self):
+    for r, d in PRESTIGE_STATUS.items() :
+      if self.prestige in r :
+        return PRESTIGE_STATUS[r]
+    raise Exception("Out of bounds prestige!")
+
+ 
 class Board():
   def __init__(self, scenario, world_config, theapp) :
     self.troop_track = TroopTrack(TROOPS_MAX)
     self.funding_track = FundingTrack(scenario['funding'], CELLS_MAX)
-    self.markers = []
-    self.lapsing = []
-    self.prestige = 0
+    self.prestige = PrestigeTrack(0)
+    self.events = []
+    self.lapsing_events = []
     self.deck = {}
     self.gwot_relations = { }
     self.app = theapp
     self.world = self.world_setup(world_config)
+
+  def victory_track(self):
+    vt = {
+        'good_resources' : 0
+      , 'islamist_resources' : 0
+      , 'good_fair_countries' : 0
+      , 'poor_islamist_countries' : 0 }
+
+    for name, stats in self.world.items() :
+      if "Suni" == stats['culture'] or "Shia-Mix" == stats['culture'] :
+        if Governance.GOOD == stats['governance'] :
+          vt['good_resources'] += stats['resources']
+        elif Governance.ISLAMIST_RULE == stats['governance'] :
+          vt['islamist_resources'] += stats['resources']
+
+        if Governance.GOOD == stats['governance'] or Governance.FAIR == stats['governance'] :
+          vt['good_fair_countries'] += 1
+        elif Governance.GOOD == stats['governance'] or Governance.FAIR == stats['governance'] :
+          vt['poor_islamist_countries'] += 1
+    return vt
+
+  def place_cells(self, country, num):
+    if country in self.world.keys() :
+      self.world[country].sleeper_cells = self.funding_track.remove_cells(num)
+      return (country, num)
+    else: raise UnknownCountry(country)
+
+  def place_troops(self, country, num):
+    if country in self.world.keys() :
+      self.world[country].troops_stationed = self.troop_track.remove_troops(num)
+      return (country, num)
+    else: raise UnknownCountry(country)
 
   def world_setup(self, world_config) :
     world = {}
@@ -2251,6 +2318,74 @@ class Board():
         else :
           world[country].links.append(world[adj])
     return world
+
+  def set_prestige(self, num) : self.prestige.set_prestige(num)
+
+  def set_event_in_play(self, events) :
+    if type(events).__name__ == 'list' :
+      self.events.extend(events)
+    else: self.events.append(events)
+
+  def set_country_event_in_play(self, country, events) :
+    if country not in self.world.keys() :
+      raise UnknownCountry(country)
+
+    if type(events).__name__ == 'list' :
+      self.world[country].markers.extend(events)
+      if 'besieged' in events :
+        self.world[country].besieged += 1
+        
+    else:
+      self.world[country].markers.append(events)
+      if 'besieged' == events :
+        self.world[country].besieged += 1
+  
+  def test_country(self, country) :
+    if country not in self.world.keys() :
+      raise UnknownCountry(country)
+
+    if Governance.TEST == self.world[country].governance :
+    elif Alignment.TEST == self.world[country].alignment :
+
+    if Posture.TEST == self.world[country].posture and self.world[country].culture == "Non-Muslim" :
+      if random_roll() <= POSTURE_DIVIDE : self.set_posture(country, Posture.SOFT)
+      else: self.set_posture(country, Posture.HARD)
+
+    if self.map[country].culture == "Non-Muslim" and self.map[country].posture == "":
+      testRoll = random.randint(1,6)
+      if testRoll <= 4:
+        self.map[country].posture = "Soft"
+      else:
+        self.map[country].posture = "Hard"
+      self.outputToHistory("%s tested, posture %s" % (self.map[country].name, self.map[country].posture), False)
+    elif self.map[country].governance == 0:
+      testRoll = random.randint(1,6)
+      if testRoll <= 4:
+        self.map[country].governance = 3
+      else:
+        self.map[country].governance = 2
+      self.map[country].alignment = "Neutral"
+      self.outputToHistory("%s tested, governance %s" % (self.map[country].name, self.map[country].govStr()), False)
+
+  def set_governance(self, country, level) :
+    if type(level).__name__ != 'Governance' :
+      raise Exception("Not a governance level!")
+
+    if country in self.world.keys() :
+      self.world[country].governance = level
+    else : raise UnknownCountry(country)
+    
+    return level
+
+  def set_alignment(self, country, level) :
+    if type(level).__name__ != 'Alignment' :
+      raise Exception("Not a alignment level!")
+
+    if country in self.world.keys() :
+      self.world[country].alignment = level
+    else : raise UnknownCountry(country)
+    
+    return level
 
 class Labyrinth(cmd.Cmd):
 
@@ -2311,7 +2446,6 @@ class Labyrinth(cmd.Cmd):
     self.uCard = 1
     self.jCard = 1
     self.phase = ""
-  #  self.map_setup()
     self.history = []
     self.markers = []
     self.lapsing = []
@@ -2415,21 +2549,6 @@ class Labyrinth(cmd.Cmd):
     if lineFeed:
       print("")
 
-  def map_setup(self):
-    countries = None
-    with open(MAP_FILE, 'r') as f :
-      countries = yaml.load(f)
-
-    for country, stats in countries.items() :
-      self.map[country] = Country(self, country, stats)
-
-    for country in countries.keys() :
-      for adj in countries[country]['adjacent_countries'] :
-        if adj == 'Schengen' :
-          self.map[country].schengenLink = True
-        else :
-          self.map[country].links.append(self.map[adj])
-
   def setup_board(self, scenario):
     board_trackers = [ 'startYear' , 'turn' , 'prestige' , 'troops' , 'funding' , 'cells' , 'phase' ]
     for t in board_trackers:
@@ -2451,6 +2570,20 @@ class Labyrinth(cmd.Cmd):
     if scenario['random_cell_placement']['countries'] > 0 and scenario['random_cell_placement']['cells_per_country'] > 0:
       self.randomly_place_cells(scenario['random_cell_placement']['countries'], scenario['random_cell_placement']['cells_per_country'])
 
+    self.board.set_event_in_play(scenario['events'])
+    self.board.set_prestige(scenario['prestige'])
+
+    setters = { 
+      'governance': lambda country: self.board.set_governance(country.replace('_',' '), Governance[scenario['world_state'][country]['governance']])
+      , 'alignment' : lambda country: self.board.set_alignment(country.replace('_',' '), Alignment[scenario['world_state'][country]['alignment']])
+      , 'troops_stationed': lambda country: self.board.place_troops(country.replace('_',' '), scenario['world_state'][country]['troops_stationed'])
+      , 'sleeper_cells' : lambda country: self.board.place_cells(country.replace('_',' '), scenario['world_state'][country]['sleeper_cells'])
+      , 'besieged': lambda country: self.board.set_country_event_in_play(country.replace('_',' '), 'beseiged')
+    }
+
+    for country, state in scenario['world_state'].items():
+      for k, v in state.items():
+        setters[k](country)
 
   def randomly_place_cells(self, num_countries, num_cell_per_country):
     for country in random.sample(list(self.map.keys()), num_countries):
@@ -5585,3 +5718,6 @@ def main():
 
 if __name__ == "__main__":
   main()
+
+
+
