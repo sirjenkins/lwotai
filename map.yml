@@ -1,7 +1,7 @@
 "Canada":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: False
   adjacent_countries: [Schengen, 'United States', 'United Kingdom']
@@ -12,7 +12,7 @@
 "United States":
   culture: "Non-Muslim"
   posture: HARD
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: False
   adjacent_countries: [Schengen, 'Canada', 'United Kingdom', 'Philippines']
@@ -23,7 +23,7 @@
 "United Kingdom":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: False
   adjacent_countries: [Schengen, 'United States', 'Canada']
@@ -34,7 +34,7 @@
 "Serbia":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: False
   adjacent_countries: [Schengen, 'Russia', 'Turkey']
@@ -45,7 +45,7 @@
 "Israel":
   culture: "Non-Muslim"
   posture: HARD
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: False
   adjacent_countries: [Lebanon, Jordan, Egypt]
@@ -56,7 +56,7 @@
 "India":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: False
   adjacent_countries: [Pakistan, 'Indonesia/Malaysia']
@@ -67,7 +67,7 @@
 "Scandinavia":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: &schengen [Schengen, Canada, 'United States', 'United Kingdom', Serbia, Russia, Morocco, 'Algeria/Tunisia', Libya, Turkey, Lebanon]
@@ -78,7 +78,7 @@
 "Eastern Europe":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: *schengen
@@ -89,7 +89,7 @@
 "Benelux":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: *schengen
@@ -100,7 +100,7 @@
 "Germany":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: *schengen
@@ -111,7 +111,7 @@
 "France":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: *schengen
@@ -122,7 +122,7 @@
 "Italy":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: *schengen
@@ -133,7 +133,7 @@
 "Spain":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: GOOD
   schengen: True
   adjacent_countries: *schengen
@@ -144,7 +144,7 @@
 "Russia":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: [Schengen, Serbia, Turkey, Caucasus, 'Central Asia']
@@ -155,7 +155,7 @@
 "Caucasus":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: [Russia, Turkey, Iran, 'Central Asia']
@@ -166,7 +166,7 @@
 "China":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: [Thailand, 'Central Asia']
@@ -177,7 +177,7 @@
 "Kenya/Tanzania":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: [Sudan, Somalia]
@@ -188,7 +188,7 @@
 "Thailand":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: [China, Philippines, 'Indonesia/Malaysia']
@@ -199,7 +199,7 @@
 "Philippines":
   culture: "Non-Muslim"
   posture: TEST
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: ['United States', Thailand, 'Indonesia/Malaysia']
@@ -408,7 +408,7 @@
 "Iran":
   culture: "Iran"
   posture: NO_POS
-  alignment: TEST
+  alignment: NO_ALIGN
   governance: FAIR
   schengen: False
   adjacent_countries: ['Central Asia', Afghanistan, Pakistan, 'Gulf States', Iraq, Turkey, Caucasus]
