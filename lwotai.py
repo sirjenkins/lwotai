@@ -37,9 +37,9 @@ from enum import IntEnum
 from enum import Enum
 
 CONFLICT_STATUS = {
-    range(11,16): 9 # Low Intensity
-  , range(6,11): 8  # War
-  , range(1,6): 7   # Overstretched
+    range(11,16): (9, 'Low Intensity')
+  , range(6,11): (8, 'War')
+  , range(1,6): (7, 'Overstretched')
 }
 
 FUNDING_STATUS = {
@@ -65,6 +65,10 @@ class Governance(IntEnum):
   GOOD = 1
   TEST = 0
 
+  def __str__(self) : return self.name
+  def __format__(self,spec) :
+    return format(self.__str__(), spec)
+
 class Alignment(IntEnum):
   NO_ALIGN = -1
   TEST = 0
@@ -72,11 +76,21 @@ class Alignment(IntEnum):
   NEUTRAL = 2
   ALLY = 3
 
+  def __str__(self) : return self.name
+  def __format__(self,spec) :
+    return format(self.__str__(), spec)
+
 class Posture(Enum):
   HARD = 'Hard'
   SOFT = 'Soft'
   TEST = '??'
   NO_POS = None
+
+  def __str__(self) :
+    return self.value
+
+  def __format__(self,spec) :
+    return format(self.__str__(), spec)
 
 COUNTRY_STATS = {'governance': Governance, 'alignment': Alignment}
 POSTURE_DIVIDE = 4
@@ -135,6 +149,25 @@ class Country:
     self.markers = []
     self.schengenLink = False
 
+  def get_stats(self) :
+    return dict(
+      c = self
+      , name = self.name
+      , culture = self.culture
+      , posture = self.posture
+      , alignment = self.alignment
+      , governance = self.governance
+      , resources = self.resources
+      , troops_stationed = self.troops_stationed
+      , activeCells = self.activeCells
+      , sleeper_cells = self.sleeper_cells
+      , aid = self.aid
+      , besieged = self.besieged
+      , regimeChange = self.regimeChange
+      , cadre = self.cadre
+      , plots = self.plots
+    )
+
   # Culture Queries
   def non_muslim_Q(self):
     return 'Non-Muslim' == self.culture
@@ -184,8 +217,14 @@ class Country:
   def test_posture_Q(self):
     return Posture.TEST == self.posture
 
+  def cadre_Q(self): return self.cadre == 1
+
   def remove_cadre(self): self.cadre = 0
   def add_cadre(self): self.cadre = 1
+
+  def aid_Q(self) : self.aid > 0
+  def besieged_Q(self) : self.besieged > 0
+  def regime_change_Q(self) : self.regimeChange
 
   def totalCells(self, includeSadr = False):
     total = self.activeCells + self.sleeper_cells
@@ -226,13 +265,13 @@ class Country:
       self.troops_stationed = 0
 
   def govStr(self):
-    if self.governance == 1:
+    if self.good_Q():
       return "Good"
-    elif self.governance == 2:
+    elif self.fair_Q():
       return "Fair"
-    elif self.governance == 3:
+    elif self.poor_Q():
       return "Poor"
-    elif self.governance == 4:
+    elif self.islamist_rule_Q():
       return "Islamic Rule"
 
   def typePretty(self, culture):
@@ -379,7 +418,7 @@ class Card:
         if "Leak-Wiretapping" in app.markers:
           return False
         for country in ["United States", "United Kingdom", "Canada"]:
-          if app.map[country].totalCells() > 0 or app.map[country].cadre > 0 or app.map[country].plots > 0:
+          if app.map[country].totalCells() > 0 or app.board.cadre_Q(country) or app.map[country].plots > 0:
             return True
         return False
       elif self.number == 32: # Back Channel
@@ -1191,10 +1230,10 @@ class Card:
               app.map[country].sleeper_cells -= num
               app.cells += num
               app.outputToHistory("%d Sleeper Cell(s) removed from %s." % (num, country), False)
-          if app.map[country].cadre > 0:
+          if app.board.cadre_Q(country):
             num = app.map[country].cadre
             if num > 0:
-              app.map[country].cadre = 0
+              app.board.remove_cadre(country)
               app.outputToHistory("Cadre removed from %s." % country, False)
           if app.map[country].plots > 0:
             num = app.map[country].plots
@@ -2253,85 +2292,102 @@ class Card:
 
 class TroopTrack():
   def __init__(self, num) :
-    self.__troops__ = num
-    self.__troops_max__ = num
+    self.__troops = num
+    self.__troops_max = num
+
+  def get_troops(self) : return self.__troops
+
+  def inc_troops(self, amt) :
+    t = self.get_troops() + amt
+    if t > self.__troops_max : return self.add_troops(self.__troops_max - self.get_troops())
+    return self.add_troops(amt)
+
+  def dec_troops(self, amt) :
+    t = self.get_troops - amt
+    if t < 0 : return self.remove_troops(self.get_troops())
+    return self.add_troops(amt)
 
   def remove_troops(self, num) :
-    if num <= self.__troops__ :
-      self.__troops__ -= num 
+    if num <= self.__troops :
+      self.__troops -= num 
       return num
     else: raise Exception("Not enough available troops!")
 
   def add_troops(self, num) :
-    if self.__troops__ + num <= self.__troops_max__ :
-      self.__troops__ += num 
+    if self.__troops + num <= self.__troops_max :
+      self.__troops += num 
       return num
     else: raise Exception("Over MAX TROOPS!")
 
   def draw_amount(self) :
-    for r, d in CONFLICT_STATUS :
-      if self.__troops__ in r :
+    for r, (d,s) in CONFLICT_STATUS.items() :
+      if self.__troops in r :
         return d
     raise Exception("Unknown card draw amount!")
 
+  def conflict_status(self) :
+    for r, (d,s) in CONFLICT_STATUS.items() :
+      if self.__troops in r :
+        return s 
+
 class FundingTrack():
   def __init__(self, funding, cells) :
-    self.__funding__ = funding
-    self.__cells__ = cells
-    self.__cells_max__ = cells
+    self.__funding = funding
+    self.__cells = cells
+    self.__cells_max = cells
 
-  def funding(self): return self.__funding__
+  def funding(self): return self.__funding
   def set_funding(self, num) :
     if num in range(1, 10) : 
-      self.__funding__ = num
+      self.__funding = num
       return self.funding()
 
     raise Exception("Funding value out of range!")
 
   def available_cells(self) :
-    return self.__cells__
+    return self.__cells
 
   def eligible_cells(self) :
-    f_section = (self.__funding__ - 1) // 3 + 1
+    f_section = (self.__funding - 1) // 3 + 1
 
-     # print("funding: %d" % self.__funding__)
+     # print("funding: %d" % self.__funding)
      # print("f_section: %d" % f_section)
-     # print("cells: %d" % self.__cells__)
-    for c in range(0, self.__cells_max__ + 1) :
-    #  print("c: %d, e: %d\n" % (c, (self.__cells_max__ - self.__cells__ + c) // 5 + 1))
-      if (self.__cells_max__ - self.__cells__ + c) // 5 + 1 > f_section :
+     # print("cells: %d" % self.__cells)
+    for c in range(0, self.__cells_max + 1) :
+    #  print("c: %d, e: %d\n" % (c, (self.__cells_max - self.__cells + c) // 5 + 1))
+      if (self.__cells_max - self.__cells + c) // 5 + 1 > f_section :
         return c
 
   def remove_cells(self, num) :
-    if num <= self.__cells__  :
-      self.__cells__  -= num 
+    if num <= self.__cells  :
+      self.__cells  -= num 
       return num
     else: raise Exception("Not enough available cells!")
 
   def add_cells(self, num) :
-    if self.__cells__  + num <= self.__cells_max__ :
-      self.__cells__  += num 
+    if self.__cells  + num <= self.__cells_max :
+      self.__cells  += num 
       return num
     else: raise Exception("Over MAX cells!")
 
   def draw_amount(self) :
     for r, d in FUNDING_STATUS :
-      if self.__funding__  in r :
+      if self.__funding  in r :
         return d
     raise Exception("Unknown card draw amount!")
 
 class PrestigeTrack():
   def __init__(self, prestige):
-    self.__prestige__ = prestige
+    self.__prestige = prestige
 
   def set_prestige(self, num):
     for r, d in PRESTIGE_STATUS.items() : 
       if num in r :
-        self.__prestige__ = num
+        self.__prestige = num
         return num
     raise Exception("Out of bounds prestige!")
 
-  def get_prestige(self): return self.__prestige__
+  def get_prestige(self): return self.__prestige
 
   def dec_prestige(self, amt = 1) :
     p = self.get_prestige - amt
@@ -2345,7 +2401,7 @@ class PrestigeTrack():
 
   def get_prestige_modifier(self):
     for r, d in PRESTIGE_STATUS.items() :
-      if self.__prestige__ in r :
+      if self.__prestige in r :
         return PRESTIGE_STATUS[r]
     raise Exception("Out of bounds prestige!")
 
@@ -2377,25 +2433,24 @@ class Board():
 
     self.set_alignment(country, Alignment.NEUTRAL)
 
-  def victory_track(self):
-    vt = {
-        'good_resources' : 0
-      , 'islamist_resources' : 0
-      , 'good_fair_countries' : 0
-      , 'poor_islamist_countries' : 0 }
 
-    for name, c in self.world.items() :
-      if c.suni_Q() or c.shia_mix_Q() :
-        if Governance.GOOD == c.governance :
-          vt['good_resources'] += c.resources
-        elif Governance.ISLAMIST_RULE == c.governance :
-          vt['islamist_resources'] += c.resources
+  def cadre_Q(self, country) :
+    def f(self, country) :
+      return self.world[country].cadre_Q()
 
-        if Governance.GOOD == c.governance or Governance.FAIR == c.governance :
-          vt['good_fair_countries'] += 1
-        elif Governance.GOOD == c.governance or Governance.FAIR == c.governance :
-          vt['poor_islamist_countries'] += 1
-    return vt
+    return self.sanity_check_country(country, f)
+
+  def add_cadre(self, country) :
+    def f(self, country) :
+      self.world[country].add_cadre()
+
+    self.sanity_check_country(country, f)
+    
+  def remove_cadre(self, country) :
+    def f(self, country) :
+      self.world[country].remove_cadre()
+
+    self.sanity_check_country(country, f)
 
   def place_cells(self, country, num):
     def f(self, country, num) :
@@ -2478,6 +2533,100 @@ class Board():
 
     self.sanity_check_country(country, f, value)
 
+  def gwot(self):
+    p = 0
+    postures = { 'Hard': 1, 'Soft': -1 }
+
+    for n, c in self.map.items():
+      p += postures.get(c.posture, 0)
+
+    if self.map["United States"].posture == "Soft": p += 1
+    else: p -= 1
+    return ("Hard" if p > 0 else "Soft", min(abs(p),3))
+
+  def victory_track(self):
+    vt = {
+        'good_resources' : 0
+      , 'islamist_resources' : 0
+      , 'good_fair_countries' : 0
+      , 'poor_islamist_countries' : 0
+      , 'good' : []
+      , 'poor' : []
+      , 'fair' : []
+      , 'islamist' : []
+      , 'hard' : []
+      , 'soft' : [] }
+
+    for name, c in self.world.items() :
+      if c.suni_Q() or c.shia_mix_Q() :
+        if c.good_Q() :
+          vt['good_fair_countries'] += 1
+          vt['good_resources'] += c.resources
+          vt['good'].append(c.get_stats())
+        elif c.islamist_rule_Q() :
+          vt['poor_islamist_countries'] += 1
+          vt['islamist_resources'] += c.resources
+          vt['islamist'].append(c.get_stats())
+
+        if c.fair_Q() :
+          vt['good_fair_countries'] += 1
+          vt['fair'].append(c.get_stats())
+        elif c.poor_Q() :
+          vt['poor_islamist_countries'] += 1
+          vt['poor'].append(c.get_stats())
+      elif c.non_muslim_Q() and not c.iran_Q() :
+        if c.hard_Q() : vt['hard'].append(c.get_stats())
+        if c.soft_Q() : vt['soft'].append(c.get_stats())
+    return vt
+
+  def __str__(self) :
+    def gen_c_str(kind) :
+      out = ''
+      temp = ''
+      heading = ''
+
+      if kind == 'hard' or kind == 'soft' :
+        temp += "   {name:<15} {resources:<5} {posture:<10} {governance:<13} {plots:^5}  [{activeCells:^5}|{sleeper_cells:^4}]  [{troops_stationed:^4}]\n"
+      else : 
+        temp += "   {name:<15} {resources:<5} {alignment:<10} {governance:<13} {plots:^5}  [{activeCells:^5}|{sleeper_cells:^4}]  [{troops_stationed:^4}]  {cadre:*<5} {aid:*<3} {besieged:*<8} {regimeChange:*<12}\n"
+
+      
+      for c in vt[kind] :
+        if c['c'].cadre_Q() : c['cadre'] = 'Cadre'
+        else :  c['cadre'] = ''
+        if c['c'].aid_Q() : c['aid'] = 'Aid'
+        else :  c['aid'] = ''
+        if c['c'].besieged_Q() : c['besieged'] = 'Besieged'
+        else :  c['besieged'] = ''
+        if c['c'].regime_change_Q() : c['regimeChange'] = 'Regime Change'
+        else :  c['regimeChange'] = ''
+
+        out += temp.format_map(c)
+      
+      if out != '' : return heading + out
+      return heading + "   None: {k}\n".format(k=kind.upper())
+
+    vt = self.victory_track()
+
+
+    out = "   {name:<15} {resources:<5} {align:<10} {governance:<13} {plots:^5} [{activeCells:^6}|{sleeper_cells:^5}] {troops_stationed:^4}\n".format(name="NAME", resources= "RES", align="ALIGN", plots="PLOTS", governance="GOV", activeCells="active", sleeper_cells="sleep", troops_stationed='TROOPS')
+
+    out += gen_c_str('good') + "\n"
+
+    out += gen_c_str('fair') + "\n"
+
+    out += gen_c_str('poor') + "\n"
+
+    out += gen_c_str('islamist') + "\n"
+
+    out += "   {name:<15} {resources:<5} {posture:<10} {governance:<13} {plots:^5}  {activeCells:^6}|{sleeper_cells:^5}  {troops_stationed:^4}\n".format(name="NAME", resources= "RES", posture="POSTURE", plots="PLOTS", governance="GOV", activeCells="ACTIVE", sleeper_cells="SLEEP", troops_stationed="TROOPS")
+
+    out += gen_c_str('hard') + "\n"
+
+    out += gen_c_str('soft') + "\n"
+
+    return out
+ 
 class Labyrinth(cmd.Cmd):
 
   map = {}
@@ -2529,7 +2678,6 @@ class Labyrinth(cmd.Cmd):
     self.map = self.board.world
     self.markers = self.board.events
     self.ideology = theIdeology
-    self.troops = 0
     self.cells = 0
     self.funding = 0
     self.startYear = 0
@@ -2578,6 +2726,8 @@ class Labyrinth(cmd.Cmd):
     self.deck = {}
     self.deckSetup()
 
+    print(self.board)
+
   def postcmd(self, stop, line):
 
     self.Save(SUSPEND_FILE)
@@ -2605,13 +2755,13 @@ class Labyrinth(cmd.Cmd):
     troopCount = 0
     for country in self.map:
       troopCount += self.map[country].troops()
-    troopCount += self.troops
+    troopCount += self.board.troop_track.get_troops()
     if troopCount != 15:
       print("DEBUG: TROOP COUNT %d" % troopCount)
   # Countries tested test
     for country in self.map:
       badCountry = False
-      if (self.map[country].sleeper_cells > 0) or (self.map[country].activeCells > 0) or (self.map[country].troops_stationed > 0) or (self.map[country].aid > 0) or  (self.map[country].regimeChange > 0) or (self.map[country].cadre > 0) or (self.map[country].plots > 0):
+      if (self.map[country].sleeper_cells > 0) or (self.map[country].activeCells > 0) or (self.map[country].troops_stationed > 0) or (self.map[country].aid > 0) or  (self.map[country].regimeChange > 0) or (self.board.cadre_Q(country)) or (self.map[country].plots > 0):
         if (self.map[country].governance == 0):
           badCountry = True
         if self.map[country].non_muslim_Q():
@@ -2640,7 +2790,7 @@ class Labyrinth(cmd.Cmd):
       print("")
 
   def setup_board(self, scenario):
-    board_trackers = [ 'startYear' , 'turn' , 'prestige' , 'troops' , 'funding' , 'cells' , 'phase' ]
+    board_trackers = [ 'startYear' , 'turn' , 'troops' , 'cells' , 'phase' ]
     for t in board_trackers:
       setattr(self, t, scenario[t])
 
@@ -2746,7 +2896,6 @@ class Labyrinth(cmd.Cmd):
       self.startYear = 2001
       self.turn = 1
       self.board.prestige_track.set_prestige(7)
-      self.troops = 11
       self.funding = 9
       self.cells = 11
       self.phase = "Jihadist Action Phase"
@@ -3149,7 +3298,7 @@ class Labyrinth(cmd.Cmd):
       cellsToMove = min(numCells, self.cells)
       self.map[country].sleeper_cells += cellsToMove
       # remove cadre
-      self.map[country].cadre = 0
+      self.board.remove_cadre(country)
       self.cells -= cellsToMove
       self.outputToHistory("%d Sleeper Cell(s) placed in %s" % (cellsToMove, country), False)
       self.outputToHistory(self.map[country].countryStr(), True)
@@ -3170,7 +3319,7 @@ class Labyrinth(cmd.Cmd):
       self.outputToHistory("Active Cell removed from %s." % country, True)
     if self.map[country].totalCells() == 0:
       self.outputToHistory("Cadre added in %s." % country, True)
-      self.map[country].cadre = 1
+      self.board.add_cadre(country)
 
   def removeAllCellsFromCountry(self, country):
     cellsToRemove = self.map[country].totalCells()
@@ -3186,7 +3335,7 @@ class Labyrinth(cmd.Cmd):
       self.outputToHistory("%d Active Cell(s) removed from %s." % (numCells, country), False)
     if cellsToRemove > 0:
       self.outputToHistory("Cadre added in %s." % country, False)
-      self.map[country].cadre = 1
+      self.board.add_cadre(country)
 
   def improveGovernance(self, country):
     self.map[country].governance -= 1
@@ -3244,7 +3393,7 @@ class Labyrinth(cmd.Cmd):
   def numDisruptable(self):
     numDis = 0
     for country in self.map:
-      if self.map[country].totalCells(False) > 0 or self.map[country].cadre > 0:
+      if self.map[country].totalCells(False) > 0 or self.board.cadre_Q(country):
         if self.map[country].troops() > 0 or self.map[country].non_muslim_Q() or self.map[country].alignment == "Ally":
           numDis += 1
     return numDis
@@ -3292,7 +3441,7 @@ class Labyrinth(cmd.Cmd):
     if self.map["United States"].posture == "Soft":
       return
     if moveFrom == 'track':
-      self.troops -= howMany
+      self.board.troop_track.dec_troops(howMany)
     else:
       self.map[moveFrom].changeTroops(-howMany)
     self.map[where].changeTroops(howMany)
@@ -3312,7 +3461,7 @@ class Labyrinth(cmd.Cmd):
     self.outputToHistory("* Regime Change in %s" % where, False)
     self.outputToHistory(self.map[where].countryStr(), False)
     if moveFrom == "track":
-      self.outputToHistory("%d Troops on Troop Track" % self.troops, False)
+      self.outputToHistory("%d Troops on Troop Track" % self.board.troop_track.get_troops(), False)
     else:
       self.outputToHistory("%d Troops in %s" % (self.map[moveFrom].troops(), moveFrom), False)
     self.outputToHistory("US Prestige %d" % self.board.prestige_track.get_prestige())
@@ -3328,7 +3477,7 @@ class Labyrinth(cmd.Cmd):
       return
     self.map[moveFrom].changeTroops(-howMany)
     if moveTo == "track":
-      self.troops += howMany
+      self.board.troop_track.inc_troops(howMany)
     else:
       self.map[moveTo].changeTroops(howMany)
     self.map[moveFrom].aid = 0
@@ -3340,7 +3489,7 @@ class Labyrinth(cmd.Cmd):
     self.outputToHistory("* Withdraw troops from %s" % moveFrom, False)
     self.outputToHistory(self.map[moveFrom].countryStr(), False)
     if moveTo == "track":
-      self.outputToHistory("%d Troops on Troop Track" % self.troops, False)
+      self.outputToHistory("%d Troops on Troop Track" % self.board.troop_track.get_troops(), False)
     else:
       self.outputToHistory("%d Troops in %s" % (self.map[moveTo].troops(), moveTo), False)
       self.outputToHistory(self.map[moveTo].countryStr(), False)
@@ -3623,7 +3772,7 @@ class Labyrinth(cmd.Cmd):
     for country in self.map:
 
 
-      if (self.map[country].totalCells(True) > 0 or (self.map[country].cadre > 0)) or (isMadrassas and self.map[country].governance > 2):
+      if (self.map[country].totalCells(True) > 0 or (self.board.cadre_Q(country))) or (isMadrassas and self.map[country].governance > 2):
         #countryScores[country] = 0
         if (self.map[country].regimeChange > 0) and (self.map[country].troops() - self.map[country].totalCells(True)) >= 5:
           self.debugprint(("a"))
@@ -3677,12 +3826,12 @@ class Labyrinth(cmd.Cmd):
       self.map[country].sleeper_cells += cellsToRecruit
 
       if cellsToRecruit == 0 and isJihadistVideos:
-        self.map[country].cadre = 1
+        self.board.add_cadre(country)
         self.outputToHistory("No cells available to recruit.  Cadre added.", False)
         self.outputToHistory(self.map[country].countryStr(), True)
         return ops - 1;
       else:
-        self.map[country].cadre = 0
+        self.board.remove_cadre(country)
 
       self.outputToHistory("%d sleeper cells recruited to %s." % (cellsToRecruit, country), False)
       self.outputToHistory(self.map[country].countryStr(), True)
@@ -3695,7 +3844,7 @@ class Labyrinth(cmd.Cmd):
       i = 0
 
       if self.numCellsAvailable(isJihadistVideos) <= 0 and opsRemaining > 0:
-        self.map[country].cadre = 1
+        self.board.add_cadre(country)
         self.outputToHistory("No cells available to recruit.  Cadre added.", False)
         self.outputToHistory(self.map[country].countryStr(), True)
         return ops - 1;
@@ -3714,12 +3863,12 @@ class Labyrinth(cmd.Cmd):
               cellsMoving = min(self.numCellsAvailable(isMadrassas or isJihadistVideos), 1)
             self.cells -= cellsMoving
             self.map[country].sleeper_cells += cellsMoving
-            self.map[country].cadre = 0
+            self.board.remove_cadre(country)
             self.outputToHistory("Roll successful, %d sleeper cell(s) recruited." % cellsMoving, False)
           else:
             self.outputToHistory("Roll failed.", False)
             if isJihadistVideos:
-              self.map[country].cadre = 1
+              self.board.add_cadre(country)
               self.outputToHistory("Cadre added.", False)
           opsRemaining -= 1
           i += 1
@@ -4667,8 +4816,8 @@ class Labyrinth(cmd.Cmd):
     print("--------------------")
     if needed == None:
       needed = 0
-    if self.troops > needed:
-      print("Troop Track: %d" % self.troops)
+    if self.board.troop_track.get_troops() > needed:
+      print("Troop Track: %d" % self.board.troop_track.get_troops())
     for country in self.map:
       if self.map[country].troops() > needed:
         print("%s: %d" % (country, self.map[country].troops()))
@@ -4688,7 +4837,7 @@ class Labyrinth(cmd.Cmd):
     print("Disruptable Countries")
     print("--------------------")
     for country in self.map:
-      if self.map[country].sleeper_cells + self.map[country].activeCells > 0 or self.map[country].cadre > 0:
+      if self.map[country].sleeper_cells + self.map[country].activeCells > 0 or self.board.cadre_Q(country):
         if self.map[country].troops() > 0 or self.map[country].non_muslim_Q() or self.map[country].alignment == "Ally":
           postureStr = ""
           troopsStr = ""
@@ -4982,16 +5131,9 @@ class Labyrinth(cmd.Cmd):
     else:
       worldPosStr = "Even"
     print("World Posture: %s %d" % (worldPosStr, abs(worldPos)))
-    print("US Prestige: %d" % self.board.prestige_track.get_prestige())
-    print("")
+    print("US Prestige: %d\n" % self.board.prestige_track.get_prestige())
     print("TROOPS")
-    if self.troops >= 10:
-      print("Low Intensity: %d troops available" % self.troops)
-    elif self.troops >= 5:
-      print("War: %d troops available" % self.troops)
-    else:
-      print("Overstretch: %d troops available" % self.troops)
-    print("")
+    print("%s: %d\n" % (self.board.troop_track.conflict_status(), self.board.troop_track.get_troops()))
     print("JIHADIST FUNDING")
     print("Funding: %d" % self.funding)
     print("Cells Available: %d" % self.cells)
@@ -5051,14 +5193,14 @@ class Labyrinth(cmd.Cmd):
         print("")
         return
       elif input == "track":
-        if self.troops <= 0:
+        if self.board.troop_track.get_troops() <= 0:
           print("There are no troops on the Troop Track.")
           print("")
           return
         else:
-          print("Deploy from Troop Track - %d available" % self.troops)
+          print("Deploy from Troop Track - %d available" % self.board.troop_track.get_troops())
           print("")
-          available = self.troops
+          available = self.board.troop_track.get_troops()
           moveFrom = input
       else:
         if self.map[input].troops() <= 0:
@@ -5093,8 +5235,8 @@ class Labyrinth(cmd.Cmd):
       else:
         howMany = input
     if moveFrom == "track":
-      self.troops -= howMany
-      troopsLeft = self.troops
+      self.board.troop_track.dec_troops(howMany)
+      troopsLeft = self.board.troop_track.get_troops()
     else:
       if self.map[moveFrom].regimeChange:
         if (self.map[moveFrom].troops() - howMany) < (5 + self.map[moveFrom].totalCells(True)):
@@ -5104,8 +5246,8 @@ class Labyrinth(cmd.Cmd):
       self.map[moveFrom].changeTroops(-howMany)
       troopsLeft = self.map[moveFrom].troops()
     if moveTo == "track":
-      self.troops += howMany
-      troopsNow = self.troops
+      self.board.troop_track.inc_troops(howMany)
+      troopsNow = self.board.troop_track.get_troops()
     else:
       self.map[moveTo].changeTroops(howMany)
       troopsNow = self.map[moveTo].troops()
@@ -5131,7 +5273,7 @@ class Labyrinth(cmd.Cmd):
         print("")
         return
       else:
-        if self.map[input].sleeper_cells + self.map[input].activeCells <= 0 and self.map[input].cadre <= 0:
+        if self.map[input].sleeper_cells + self.map[input].activeCells <= 0 and not self.board.cadre_Q(input) :
           print("There are no cells or cadre in %s." % input)
           print("")
         elif "FATA" in self.map[input].markers and self.map[input].regimeChange == 0:
@@ -5262,14 +5404,14 @@ class Labyrinth(cmd.Cmd):
         print("")
         return
       elif input == "track":
-        if self.troops <= 6:
+        if self.board.troop_track.get_troops() <= 6:
           print("There are not enough troops on the Troop Track.")
           print("")
           return
         else:
-          print("Deploy from Troop Track - %d available" % self.troops)
+          print("Deploy from Troop Track - %d available" % self.board.troop_track.get_troops())
           print("")
-          available = self.troops
+          available = self.board.troop_track.get_troops()
           moveFrom = input
       else:
         if self.map[input].troops() <= 6:
@@ -5592,9 +5734,9 @@ class Labyrinth(cmd.Cmd):
       jihadistCards = 8
     else:
       jihadistCards = 7
-    if self.troops >= 10:
+    if self.board.troop_track.get_troops() >= 10:
       usCards = 9
-    elif self.troops >= 5:
+    elif self.board.troop_track.get_troops() >= 5:
       usCards = 8
     else:
       usCards = 7
