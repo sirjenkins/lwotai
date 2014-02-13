@@ -2759,10 +2759,8 @@ class Labyrinth(cmd.Cmd):
 
     print("")
 
-    self.outputToHistory("Game Start")
-    self.outputToHistory("")
+    self.outputToHistory("Game Start\n")
     self.outputToHistory("[[ %d (Turn %s) ]]" % (self.startYear + (self.turn - 1), self.turn), True)
-    #self.outputToHistory(self.phase)
     self.deck = {}
     self.deckSetup()
 
@@ -2884,29 +2882,6 @@ class Labyrinth(cmd.Cmd):
   def num_poor_countries(self):
     return len([ n for n, c in self.map.items() if c.governance > Governance.FAIR and (c.shia_mix_Q() or c.suni_Q()) ])
 
-  def gwot(self):
-    p = 0
-    postures = { 'Hard': 1, 'Soft': -1 }
-
-    for n, c in self.map.items():
-      p += postures.get(c.posture, 0)
-
-    if self.map["United States"].soft_Q(): p += 1
-    else: p -= 1
-    return ("Hard" if p > 0 else "Soft", min(abs(p),3))
-
-  def print_board_trackers(self):
-    print("Good Resources   : %d" % self.num_good_resources())
-    print("Islamic Resources: %d" % self.num_islamist_resources())
-    print("---")
-    print("Good/Fair Countries   : %d" % self.num_good_countries())
-    print("Poor/Islamic Countries: %d" % self.num_poor_countries())
-    print("")
-    print("GWOT")
-    print("US Posture: %s" % self.map["United States"].posture)
-    print("World Posture: %s %d" % self.gwot())
-    print("US Prestige: %d \n" % self.board.prestige_track.get_prestige())
-
   def scenario_setup(self):
     scenarios = None
     with open(SCENARIOS_FILE, 'r') as f:
@@ -2927,8 +2902,6 @@ class Labyrinth(cmd.Cmd):
 
       self.test_countries([n for n, c in self.map.items() if c.schengen])
       print("Remove the cards Patriot Act, Tora Bora, NEST, Abu Sayyaf, KSM and Iraqi WMD from the game. \n")
-
-    self.print_board_trackers()
 
 
   def testScenarioSetup(self):
