@@ -2587,7 +2587,40 @@ class Board():
         if c.soft_Q() : vt['soft'].append(c.get_stats())
     return vt
 
-  def country_summary(self) :
+  def country_summary(self, cname) :
+    out = ''
+    temp = ''
+    heading = ''
+
+    country = self.world[cname]
+    if country.non_muslim_Q() :
+      temp += "   {name:<15} {resources:<5} {posture:<10} {governance:<13} {plots:^5}  [{activeCells:^5}|{sleeper_cells:^4}]  [{troops_stationed:^4}]  {cadre:*<5}\n"
+
+      heading = "   {name:<15} {resources:<5} {posture:<10} {governance:<13} {plots:^5}  {activeCells:^6}|{sleeper_cells:^5}  {troops_stationed:^4}\n".format(name="NAME", resources= "RES", posture="POSTURE", plots="PLOTS", governance="GOV", activeCells="ACTIVE", sleeper_cells="SLEEP", troops_stationed="TROOPS")
+
+    elif not country.iran_Q() :
+      heading = "   {name:<15} {resources:<5} {align:<10} {governance:<13} {plots:^5} [{activeCells:^6}|{sleeper_cells:^5}] {troops_stationed:^4}\n".format(name="NAME", resources= "RES", align="ALIGN", plots="PLOTS", governance="GOV", activeCells="active", sleeper_cells="sleep", troops_stationed='TROOPS')
+
+      temp += "   {name:<15} {resources:<5} {alignment:<10} {governance:<13} {plots:^5}  [{activeCells:^5}|{sleeper_cells:^4}]  [{troops_stationed:^4}]  {cadre:*<5} {aid:*<3} {besieged:*<8} {regimeChange:*<12}\n"
+
+    
+    c = country.get_stats()
+    if country.cadre_Q() : c['cadre'] = 'Cadre'
+    else :  c['cadre'] = ''
+    if country.aid_Q() : c['aid'] = 'Aid'
+    else :  c['aid'] = ''
+    if country.besieged_Q() : c['besieged'] = 'Besieged'
+    else :  c['besieged'] = ''
+    if country.regime_change_Q() : c['regimeChange'] = 'Regime Change'
+    else :  c['regimeChange'] = ''
+    if country.non_muslim_Q() : c['resources'] = '-'
+
+    out += temp.format_map(c)
+    
+    if out != '' : return heading + out
+    return heading + "   None: {k}\n".format(k=kind.upper())
+
+  def world_summary(self) :
     def gen_c_str(kind) :
       out = ''
       temp = ''
@@ -2608,6 +2641,7 @@ class Board():
         else :  c['besieged'] = ''
         if c['c'].regime_change_Q() : c['regimeChange'] = 'Regime Change'
         else :  c['regimeChange'] = ''
+        if c['c'].non_muslim_Q() : c['resources'] = '-'
 
         out += temp.format_map(c)
       
@@ -2652,7 +2686,7 @@ class Board():
     return out
 
   def __str__(self) :
-    out = self.country_summary() + self.tracker_summary()
+    out = self.world_summary() + self.tracker_summary()
     return out
  
 class Labyrinth(cmd.Cmd):
@@ -5059,130 +5093,17 @@ class Labyrinth(cmd.Cmd):
         goodCountry = possible[0]
 
       if goodCountry:
-        self.map[goodCountry].printCountry()
+        print(self.board.country_summary(goodCountry))
         return
       else:
         return
 
-
-    goodRes = 0
-    islamRes = 0
-    goodC = 0
-    islamC = 0
-    worldPos = 0
-    for country in self.map:
-      if self.map[country].shia_mix_Q() or self.map[country].suni_Q():
-        if self.map[country].good_Q():
-          goodC += 1
-          goodRes += self.countryResources(country)
-        elif self.map[country].fair_Q():
-          goodC += 1
-        elif self.map[country].poor_Q():
-          islamC += 1
-        elif self.map[country].islamist_rule_Q():
-          islamC += 1
-          islamRes += self.countryResources(country)
-      elif self.map[country].culture != "Iran" and self.map[country].name != "United States":
-        if self.map[country].hard_Q():
-          worldPos += 1
-        elif self.map[country].soft_Q():
-          worldPos -= 1
-    print("\n GOOD GOVERNANCE")
-    num = 0
-    for country in self.map:
-      if self.map[country].culture != "Non-Muslim" and self.map[country].good_Q():
-        num += 1
-        self.map[country].printCountry()
-    if not num:
-      print("none")
-    print("\n FAIR GOVERNANCE")
-    num = 0
-    for country in self.map:
-      if self.map[country].culture != "Non-Muslim" and self.map[country].fair_Q():
-        num += 1
-        self.map[country].printCountry()
-    if not num:
-      print("none")
-    print("\n POOR GOVERNANCE")
-    num = 0
-    for country in self.map:
-      if self.map[country].culture != "Non-Muslim" and self.map[country].poor_Q():
-        num += 1
-        self.map[country].printCountry()
-    if not num:
-      print("none")
-    print("\n ISLAMIC RULE")
-    num = 0
-    for country in self.map:
-      if self.map[country].culture != "Non-Muslim" and self.map[country].islamist_rule_Q():
-        num += 1
-        self.map[country].printCountry()
-    if not num:
-      print("none")
-    print("\n HARD POSTURE")
-    num = 0
-    for country in self.map:
-      if self.map[country].hard_Q():
-        num += 1
-        self.map[country].printCountry()
-    if not num:
-      print("none")
-    print("\n SOFT POSTURE")
-    num = 0
-    for country in self.map:
-      if self.map[country].soft_Q():
-        num += 1
-        self.map[country].printCountry()
-    if not num:
-      print("none")
-    print("\n PLOTS")
-    plotCountries = 0
-    for country in self.map:
-      if self.map[country].plots > 0:
-        plotCountries += 1
-        print("%s: %d plot(s)" % (country, self.map[country].plots))
-    if plotCountries == 0:
-      print("No Plots")
-    print("\n VICTORY")
-    print("Good Resources   : %d" % goodRes)
-    print("Islamic Resources: %d" % islamRes)
-    print("---")
-    print("Good/Fair Countries   : %d" % goodC)
-    print("Poor/Islamic Countries: %d" % islamC)
-    print("")
-    print("GWOT")
-    print("US Posture: %s" % self.map["United States"].posture)
-    if worldPos > 0:
-      worldPosStr = "Hard"
-    elif worldPos < 0:
-      worldPosStr = "Soft"
-    else:
-      worldPosStr = "Even"
-    print("World Posture: %s %d" % (worldPosStr, abs(worldPos)))
-    print("US Prestige: %d\n" % self.board.prestige_track.get_prestige())
-    print("TROOPS")
-    print("%s: %d\n" % (self.board.troop_track.conflict_status(), self.board.troop_track.get_troops()))
-    print("JIHADIST FUNDING")
-    print("Funding: %d" % self.funding)
-    print("Cells Available: %d" % self.cells)
-    print("")
-    print("EVENTS")
-    if len(self.markers) == 0:
-      print("Markers: None")
-    else:
-      print("Markers: %s" % ", ".join(self.markers))
-    if len(self.lapsing) == 0:
-      print("Lapsing: None")
-    else:
-      print("Lapsing: %s" % ", ".join(self.lapsing))
-    print("")
+    print(self.board)
     print("DATE")
-    print("%d (Turn %s)" % (self.startYear + (self.turn - 1), self.turn))
-    print("")
+    print("%d (Turn %s)\n" % (self.startYear + (self.turn - 1), self.turn))
 
   def help_status(self):
-    print("Display game status.  status [country] will print out status of single country.")
-    print("")
+    print("Display game status.  status [country] will print out status of single country.\n")
 
   def do_sta(self, rest):
     self.do_status(rest)
