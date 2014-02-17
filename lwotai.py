@@ -223,9 +223,9 @@ class Country:
   def remove_cadre(self): self.cadre = 0
   def add_cadre(self): self.cadre = 1
 
-  def aid_Q(self) : self.aid > 0
-  def besieged_Q(self) : self.besieged > 0
-  def regime_change_Q(self) : self.regimeChange
+  def aid_Q(self) : return self.aid > 0
+  def besieged_Q(self) : return self.besieged > 0
+  def regime_change_Q(self) : return self.regimeChange > 0
 
   def totalCells(self, includeSadr = False):
     total = self.activeCells + self.sleeper_cells
@@ -2323,6 +2323,16 @@ class FundingTrack():
 
     raise Exception("Funding value out of range!")
 
+  def inc_funding(self, amt=1) :
+    f = self.funding() + amt
+    if f > 10 : return self.set_funding(10)
+    return self.set_funding(f)
+
+  def dec_funding(self, amt=1) :
+    f = self.funding() - amt
+    if f < 1 : return self.set_funding(1)
+    return self.set_funding(f)
+
   def available_cells(self) :
     return self.__cells
 
@@ -2374,12 +2384,12 @@ class PrestigeTrack():
   def get_prestige(self): return self.__prestige
 
   def dec_prestige(self, amt = 1) :
-    p = self.get_prestige - amt
+    p = self.get_prestige() - amt
     if p <= 0 : p = 1
     return self.set_prestige(p)
 
   def inc_prestige(self, amt = 1) :
-    p = self.get_prestige + amt
+    p = self.get_prestige() + amt
     if p >= 13 : p = 12
     return self.set_prestige(p)
 
@@ -2395,12 +2405,18 @@ class Board():
     self.troop_track = TroopTrack(TROOPS_MAX)
     self.funding_track = FundingTrack(scenario['funding'], CELLS_MAX)
     self.prestige_track = PrestigeTrack(0)
-    self.events = []
-    self.lapsing_events = []
+    self.__events = []
+    self.__lapsing_events = []
     self.deck = {}
     self.gwot_relations = { }
     self.app = theapp
     self.world = self.world_setup(world_config)
+
+  def clear_lapsing_events(self) : self.__lapsing_events = []
+  def lapsing_events(self) : return list(self.__lapsing_events)
+  def events(self) : return list(self.__events)
+
+  def event_in_play_Q(self, name) : return name in self.__events
 
   def sanity_check_country(self ,country, f = None, *args):
     if country in self.world.keys() : f(self, country, *args)
@@ -2416,7 +2432,6 @@ class Board():
       else: self.set_posture(country, Posture.HARD)
 
     self.set_alignment(country, Alignment.NEUTRAL)
-
 
   def cadre_Q(self, country) :
     def f(self, country) :
@@ -2469,8 +2484,8 @@ class Board():
 
   def set_event_in_play(self, events) :
     if type(events).__name__ == 'list' :
-      self.events.extend(events)
-    else: self.events.append(events)
+      self.__events.extend(events)
+    else: self.__events.append(events)
 
   def set_country_event_in_play(self, country, events) :
     def f(self, country, events) :
@@ -2485,7 +2500,6 @@ class Board():
           self.world[country].besieged += 1
   
     self.sanity_check_country(country, f, events)
-
 
   def set_governance(self, country, level) :
     def f(self, country, level) :
@@ -2517,16 +2531,35 @@ class Board():
 
     self.sanity_check_country(country, f, value)
 
+  def get_regime_change(self) :
+    l = []
+    for n,c in self.world.items() :
+      if c.regime_change_Q() : l.append(c)
+
+    return l
+
+  def get_allied_countries(self) :
+    l = []
+    for n,c in self.world.items() :
+      if c.ally_Q() : l.append(c)
+      elif n == "Philippines" and "Abu Sayyaf" in c.markers : l.append(c)
+
+    return l
+
   def gwot(self):
     p = 0
+    world = ''
     postures = { 'Hard': 1, 'Soft': -1 }
 
     for n, c in self.world.items():
       p += postures.get(c.posture, 0)
 
-    if self.world["United States"].soft_Q(): p += 1
-    else: p -= 1
-    return ("Hard" if p > 0 else "Soft", min(abs(p),3))
+    if p > 0 : world = 'Hard'
+    else : world = 'Soft'
+
+    mod = min(abs(p),3)
+    if world != self.world['United States'].posture.value : return (world, mod, 0-mod)
+    else : return (world, mod, mod)
 
   def victory_track(self):
     vt = {
@@ -2650,7 +2683,7 @@ class Board():
     vt = self.victory_track()
 
     out = "   Plots: {plots}\n\n".format(plots=vt['plots'])
-    out += "   Events: {events}\n\n".format(events=self.events)
+    out += "   Events: {events}\n\n".format(events=self.events()+self.lapsing_events())
 
     out += "   Resources: GOOD  ISLAMIST   GOOD/FAIR   POOR/ISLAMIST\n"
     out += "              {good:^4}  {islamist:^8}   {good_fair:^9}   {poor_islamist:^13}\n\n".format(good=vt['good_resources'], islamist=vt['islamist_resources'], poor_islamist=vt['poor_islamist_countries'], good_fair=vt['good_fair_countries'])
@@ -2667,6 +2700,7 @@ class Board():
     out = self.world_summary() + self.tracker_summary()
     return out
  
+
 class Labyrinth(cmd.Cmd):
 
   map = {}
@@ -2702,21 +2736,16 @@ class Labyrinth(cmd.Cmd):
     with open(SCENARIOS_FILE, 'r') as f:
       scenario_config = yaml.load(f)
 
-    if self.scenario == 1 :
-      scenario_config = scenario_config['lets_roll']
-    elif self.scenario == 2 :
-      scenario_config = scenario_config['you_can_call_me_al']
-    elif self.scenario == 3:
-      scenario_config = scenario_config['anaconda']
-    elif self.scenario == 4:
-      scenario_config = scenario_config['mission_accomplished']
-
     with open(MAP_FILE, 'r') as f :
       world_config = yaml.load(f)
+
+    scenario_config = scenario_config[self.scenario]
+
 
     self.board = Board(scenario_config, world_config, self)
     self.map = self.board.world
     self.markers = self.board.events
+    self.lapsing = self.board.lapsing_events
     self.ideology = theIdeology
     self.cells = 0
     self.funding = 0
@@ -2726,7 +2755,6 @@ class Labyrinth(cmd.Cmd):
     self.jCard = 1
     self.phase = ""
     self.history = []
-    self.lapsing = []
     self.testUserInput = testUserInput
     if setupFuntion:
       setupFuntion(self)
@@ -2736,15 +2764,6 @@ class Labyrinth(cmd.Cmd):
     self.prompt = "Command: "
     self.gameOver = False
     self.backlashInPlay = False
-
-    if self.scenario == 1:
-      self.outputToHistory("Scenario: Let's Roll!", False)
-    elif self.scenario == 2:
-      self.outputToHistory("Scenario: You Can Call Me Al", False)
-    elif self.scenario == 3:
-      self.outputToHistory("Scenario: Anaconda", False)
-    elif self.scenario == 4:
-      self.outputToHistory("Scenario: Mission Accomplished?", False)
 
     if self.ideology == 1:
       self.outputToHistory("Jihadist Ideology: Normal", False)
@@ -2822,7 +2841,7 @@ class Labyrinth(cmd.Cmd):
     print(str)
 
   def outputToHistory(self, output, lineFeed = True):
-    print(output)
+    print("   " + output)
     self.history.append(output)
     if lineFeed:
       print("")
@@ -2830,6 +2849,7 @@ class Labyrinth(cmd.Cmd):
   def setup_board(self, scenario):
     board_trackers = [ 'startYear' , 'turn' , 'troops' , 'cells' , 'phase' ]
     for t in board_trackers:
+      print(t)
       setattr(self, t, scenario[t])
 
     for country, state in scenario['world_state'].items():
@@ -2887,19 +2907,14 @@ class Labyrinth(cmd.Cmd):
     with open(SCENARIOS_FILE, 'r') as f:
       scenarios = yaml.load(f)
 
-    if self.scenario == 1 :
-      self.setup_board(scenarios['lets_roll']) 
-    elif self.scenario == 2 :
-      self.setup_board(scenarios['you_can_call_me_al']) 
+    self.setup_board(scenarios[self.scenario]) 
+
+    if self.scenario == 'lets_roll'] :
+    elif self.scenario == 'you_can_call_me_al' :
       print("Remove the card Axis of Evil from the game. \n")
-
-    elif self.scenario == 3:
-      self.setup_board(scenarios['anaconda'])
+    elif self.scenario == 'anaconda' :
       print("Remove the cards Patriot Act and Tora Bora from the game. \n")
-
-    elif self.scenario == 4:
-      self.setup_board(scenarios['mission_accomplished'])
-
+    elif self.scenario == 'mission_accomplished' :
       self.test_countries([n for n, c in self.map.items() if c.schengen])
       print("Remove the cards Patriot Act, Tora Bora, NEST, Abu Sayyaf, KSM and Iraqi WMD from the game. \n")
 
@@ -5114,7 +5129,7 @@ class Labyrinth(cmd.Cmd):
           moveFrom = input
     moveTo = None
     while not moveTo:
-      input = self.getCountryFromUser("To what country (track for Troop Track)  (? for list)?: ",  "track", self.listDeployOptions)
+      input = self.getCountryFromUser("To what country (track for Troop Track)  (? for list)?: ",  "track", self.board.get_allied_countries())
       if input == "":
         print("")
         return
@@ -5348,20 +5363,24 @@ class Labyrinth(cmd.Cmd):
   def help_reg(self):
     self.help_regime()
 
+  def can_withdraw_Q(self, rest) :
+    return self.board.world['United States'].soft_Q()
+
   def do_withdraw(self, rest):
-    if   self.map["United States"].hard_Q():
-      print("No Withdrawl with US Posture Hard")
-      print("")
+    if not can_withdraw_Q() :
+      print("No Withdrawl with US Posture Hard\n")
       return
+
     moveFrom = None
     available = 0
+
     while not moveFrom:
-      input = self.getCountryFromUser("Withdrawl in what country?  (? for list): ", "XXX", self.listRegimeChangeCountries)
+      input = self.getCountryFromUser("Withdrawl in what country?  (? for list): ", "XXX", self.get_regime_change())
       if input == "":
         print("")
         return
       else:
-        if self.map[input].regimeChange > 0:
+        if self.board.world[input].regime_change_Q():
           moveFrom = input
           available = self.map[input].troops()
         else:
@@ -5374,12 +5393,10 @@ class Labyrinth(cmd.Cmd):
         print("")
         return
       elif input == "track":
-        print("Withdraw troops from %s to Troop Track" % moveFrom)
-        print("")
+        print("Withdraw troops from %s to Troop Track\n" % moveFrom)
         moveTo = input
       else:
-        print("Withdraw troops from %s to %s" % (moveFrom, input))
-        print("")
+        print("Withdraw troops from %s to %s\n" % (moveFrom, input))
         moveTo = input
     howMany = 0
     while not howMany:
@@ -5564,87 +5581,46 @@ class Labyrinth(cmd.Cmd):
   def help_plot(self):
     print("Use this command after the US Action Phase to resolve any unblocked plots.")
 
+  def calculate_prestige(self) :
+    vt = self.board.victory_track()
+    mods = []
+    if len(vt['islamist']) > 0 : 
+      self.board.prestige_track.dec_prestige()
+      mods.append("Islamist Rule")
+    
+    world, num, mod = self.board.gwot()
+    if world == self.board.world['United States'].posture.value and num == 3 :
+      self.board.prestige_track.inc_prestige()
+      mods.append("GWOT Strongly Aligned")
+    return mods
+
   def do_turn(self, rest):
     self.SaveTurn()
 
-    self.outputToHistory("* End of Turn.", False)
-    if "Pirates" in self.markers and (self.map["Somalia"].islamist_rule_Q() or self.map["Yemen"].islamist_rule_Q()):
+    self.outputToHistory("\n* End of Turn.", False)
+    if self.board.event_in_play_Q("Pirates") and (self.map["Somalia"].islamist_rule_Q() or self.map["Yemen"].islamist_rule_Q()):
       self.outputToHistory("No funding drop due to Pirates.", False)
     else:
-      self.funding -= 1
-      if self.funding < 1:
-        self.funding = 1
-      self.outputToHistory("Jihadist Funding now %d" % self.funding, False)
-    anyIR = False
-    for country in self.map:
-      if self.map[country].islamist_rule_Q():
-        anyIR = True
-        break
-    if anyIR:
-      self.prestige_track.dec_prestige(1)
-      if self.board.prestige_track.get_prestige() < 1:
-        self.board.prestige_track.set_prestige(1)
-    self.outputToHistory("Islamic Rule - US Prestige now %d" % self.prestige, False)
-    worldPos = 0
-    for country in self.map:
-      if not (self.map[country].shia_mix_Q() or self.map[country].suni_Q()) and self.map[country].culture != "Iran" and self.map[country].name != "United States":
-        if self.map[country].hard_Q():
-          worldPos += 1
-        elif self.map[country].soft_Q():
-          worldPos -= 1
-    if (self.map["United States"].hard_Q() and worldPos >= 3) or (self.map["United States"].soft_Q() and worldPos <= -3):
-      self.board.prestige_track.inc_prestige(1)
-      if self.board.prestige_track.get_prestige() > 12:
-        self.board.prestige_track.set_prestige(12)
-      self.outputToHistory("GWOT World posture is 3 and matches US - US Prestige now %d" % self.prestige, False)
-    for event in self.lapsing:
-      self.outputToHistory("%s has Lapsed." % event, False)
-    self.lapsing = []
-    goodRes = 0
-    islamRes = 0
-    goodC = 0
-    islamC = 0
-    worldPos = 0
-    for country in self.map:
-      if self.map[country].shia_mix_Q() or self.map[country].suni_Q():
-        if self.map[country].good_Q():
-          goodC += 1
-          goodRes += self.countryResources(country)
-        elif self.map[country].fair_Q():
-          goodC += 1
-        elif self.map[country].poor_Q():
-          islamC += 1
-        elif self.map[country].islamist_rule_Q():
-          islamC += 1
-          islamRes += self.countryResources(country)
-    self.outputToHistory("---", False)
-    self.outputToHistory("Good Resources   : %d" % goodRes, False)
-    self.outputToHistory("Islamic Resources: %d" % islamRes, False)
-    self.outputToHistory("---", False)
-    self.outputToHistory("Good/Fair Countries   : %d" % goodC, False)
-    self.outputToHistory("Poor/Islamic Countries: %d" % islamC, False)
+      self.board.funding_track.dec_funding()
+      self.outputToHistory("Jihadist Funding now %d\n" % self.board.funding_track.funding(), False)
+
+    mods = self.calculate_prestige()
+    self.outputToHistory("Prestige adjustments: %s => %d" % (mods, self.board.prestige_track.get_prestige()))
+
+    self.outputToHistory("\n%s has Lapsed." % self.board.lapsing_events(), False)
+    self.board.clear_lapsing_events()
+
+    self.outputToHistory(self.board.tracker_summary())
+
     self.turn += 1
-    self.outputToHistory("---", False)
-    self.outputToHistory("", False)
-    usCards = 0
-    jihadistCards = 0
-    if self.funding >= 7:
-      jihadistCards = 9
-    elif self.funding >= 4:
-      jihadistCards = 8
-    else:
-      jihadistCards = 7
-    if self.board.troop_track.get_troops() >= 10:
-      usCards = 9
-    elif self.board.troop_track.get_troops() >= 5:
-      usCards = 8
-    else:
-      usCards = 7
+    self.outputToHistory("---\n", False)
+    usCards = self.board.troop_track.draw_amount()
+    jihadistCards = self.board.funding_track.draw_amount()
+
     self.outputToHistory("Jihadist draws %d cards." % jihadistCards, False)
     self.outputToHistory("US draws %d cards." % usCards, False)
-    self.outputToHistory("---", False)
-    self.outputToHistory("", False)
-    self.outputToHistory("[[ %d (Turn %s) ]]" % (self.startYear + (self.turn - 1), self.turn), False)
+    self.outputToHistory("---\n", False)
+    self.outputToHistory("[[ %d (Turn %s) ]]\n" % (self.startYear + (self.turn - 1), self.turn), False)
 
   def help_turn(self):
     print("Use this command at the end of the turn.")
@@ -5728,7 +5704,77 @@ def getUserYesNoResponse(prompt):
 def raw_input(prompt):
   return input(prompt)
 
+class UICmd(cmd.Cmd) :
+  class GameState(Enum) :
+    MAIN_MENU = "Main Menu"
+    GAME = "LWOT"
+
+  def __init__(self) :
+    cmd.Cmd.__init__(self)
+    self.prompt_temp = "Turn (%d): "
+    self.state = UICmd.GameState.MAIN_MENU
+    self.prompt = self.state.value
+    self.game = None
+
+    scenario_config = None
+    with open(SCENARIOS_FILE, 'r') as f:
+      scenario_config = yaml.load(f)
+
+    self.scenario_opts = list(scenario_config.keys())
+
+  def clear_screen(self) : os.system('cls' if os.name == 'nt' else 'clear') 
+
+  def main_menu(self) :
+    self.clear_screen()
+
+    m_str = "\nWelcome to Labyrinth (Main Menu)\n"
+    m_str += "   0 -> quit game"
+
+    for opt in self.scenario_opts :
+      m_str += "\n   %d -> %s" % (self.scenario_opts.index(opt) + 1, opt.replace('_', ' ').title())
+    
+    print(m_str)
+    self.prompt = "\nSelect scenario: "
+
+  def default(self, line) :
+    if self.state == self.GameState.MAIN_MENU :
+      if line.isdigit() :
+        opt = int(line)
+        if opt == 0 : return True
+        elif opt > 0 and opt <= len(self.scenario_opts) :
+          self.game = Labyrinth(self.scenario_opts[opt - 1], 1)
+          self.state = self.GameState.GAME
+          return False
+
+      self.main_menu()
+          
+    elif self.state == self.GameState.GAME :
+      self.prompt = self.prompt_temp % self.game.turn
+      raise Exception("Unknown Command!")
+
+   
+  def preloop(self) :
+    self.main_menu()
+
+#  def precmd(self, line) :
+    
+  def postcmd(self, stop, line) :
+    if self.state == self.GameState.MAIN_MENU :
+      return stop      
+    elif self.state == self.GameState.GAME :
+      self.prompt = self.prompt_temp % self.game.turn
+
+    return stop
+
+  def do_status(self, args) :
+    print(self.board)
+
+  def do_quit(self, args) : return True
+
+#  def do_withdraw(self, args) :
+
 def main():
+
   print("\nLabyrinth: The War on Terror AI Player\n")
   scenario = 0
   ideology = 0
@@ -5832,4 +5878,5 @@ def main():
 
 
 if __name__ == "__main__":
-  main()
+  UICmd().cmdloop()
+  #main()
