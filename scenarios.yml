@@ -1,0 +1,193 @@
+lets_roll:
+  turn: 1
+  startYear: 2001
+  prestige: 7
+  posture: Hard
+  troops: 11
+  funding: 9
+  cells: 11
+  phase: "Jihadist Action Phase"
+  events: []
+  random_cell_placement:
+    countries: 0
+    cells_per_country: 0
+  world_state:
+    Libya:
+      governance: POOR
+      alignment: ADVERSARY
+    Syria:
+      governance: FAIR
+      alignment: ADVERSARY
+    Iraq:
+      governance: POOR
+      alignment: ADVERSARY
+    Saudi_Arabia: 
+      governance: POOR
+      alignment: ALLY
+      troops_stationed: 2
+    Gulf_States: 
+      governance: FAIR
+      alignment: ALLY
+      troops_stationed: 2
+    Pakistan:
+      governance: FAIR
+      alignment: NEUTRAL
+    Afghanistan:
+      governance: ISLAMIST_RULE
+      alignment: ADVERSARY
+      sleeper_cells: 4
+    Somalia:
+      besieged: 1
+
+you_can_call_me_al:
+  turn: 1
+  startYear: 2001
+  prestige: 7
+  posture: Soft
+  troops: 11
+  funding: 9
+  cells: 11
+  phase: "Jihadist Action Phase"
+  events: []
+  random_cell_placement:
+    countries: 0
+    cells_per_country: 0
+  world_state:
+    Libya:
+      governance: POOR
+      alignment: ADVERSARY
+    Syria:
+      governance: FAIR
+      alignment: ADVERSARY
+    Iraq:
+      governance: POOR
+      alignment: ADVERSARY
+    Saudi_Arabia: 
+      governance: POOR
+      alignment: ALLY
+      troops_stationed: 2
+    Gulf_States: 
+      governance: FAIR
+      alignment: ALLY
+      troops_stationed: 2
+    Pakistan:
+      governance: FAIR
+      alignment: NEUTRAL
+    Afghanistan:
+      governance: ISLAMIST_RULE
+      alignment: ADVERSARY
+      sleeper_cells: 4
+    Somalia:
+      besieged: 1
+
+anaconda:
+  turn: 1
+  startYear: 2002
+  prestige: 8
+  posture: Hard
+  troops: 5
+  funding: 6
+  cells: 13
+  phase: "Jihadist Action Phase"
+  events: ["Patriot Act"]
+  random_cell_placement:
+    countries: 3
+    cells_per_country: 1
+  world_state:
+    Libya:
+      governance: POOR
+      alignment: ADVERSARY
+    Syria:
+      governance: FAIR
+      alignment: ADVERSARY
+    Iraq:
+      governance: POOR
+      alignment: ADVERSARY
+    Saudi_Arabia:
+      governance: POOR
+      alignment: ALLY
+      troops_stationed: 2
+    Gulf_States:
+      governance: FAIR
+      alignment: ALLY
+      troops_stationed: 2
+    Pakistan:
+      governance: POOR
+      alignment: ALLY
+      markers: [ "FATA" ]
+      sleeper_cells: 1
+    Afghanistan:
+      governance: ISLAMIST_RULE
+      alignment: ADVERSARY
+      sleeper_cells: 4
+      troops_stationed: 6
+      regime_change: 1
+    Somalia:
+      besieged: 1
+    Central_Asia:
+      governance: POOR
+      alignment: ALLY
+
+mission_accomplished:
+  turn: 1
+  startYear: 2003
+  prestige: 3
+  posture: Hard
+  troops: 0
+  funding: 5
+  cells: 5
+  phase: "Jihadist Action Phase"
+  events: ["Patriot Act", 'Abu Sayyaf', 'NEST', 'Enhanced Measures', 'Renditions', 'Wiretapping']
+  random_cell_placement:
+    countries: 0
+    cells_per_country: 0
+  world_state:
+    Libya:
+      governance: POOR
+      alignment: ADVERSARY
+    Syria:
+      governance: FAIR
+      alignment: ADVERSARY
+      sleeper_cells: 1
+    Iraq:
+      governance: POOR
+      alignment: ALLY
+      sleeper_cells: 3
+      troops_stationed: 6
+      regime_change: 1
+    Iran:
+      sleeper_cells: 1
+    Saudi_Arabia:
+      governance: POOR
+      alignment: ALLY
+      sleeper_cells: 1
+    Gulf_States:
+      governance: FAIR
+      alignment: ALLY
+      troops_stationed: 2
+    Pakistan:
+      governance: FAIR
+      alignment: ALLY
+      sleeper_cells: 1
+      markers: [ "FATA" ]
+    Afghanistan:
+      governance: POOR
+      alignment: ALLY
+      sleeper_cells: 1
+      troops_stationed: 5
+      regime_change: 1
+    Somalia:
+      besieged: 1
+    Central_Asia:
+      governance: FAIR
+      alignment: NEUTRAL
+    "Indonesia/Malaysia":
+      governance: FAIR
+      alignment: NEUTRAL
+      sleeper_cells: 1
+    Philippines:
+      posture: Soft
+      sleeper_cells: 1
+      troops_stationed: 2
+    United_Kingdom:
+      posture: Hard
