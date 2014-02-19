@@ -28,6 +28,7 @@ import cmd
 import random
 import shutil
 import re
+from collections import namedtuple
 try:
   import cPickle as pickle
 except:
@@ -2278,9 +2279,11 @@ class Card:
 
 class TroopTrack():
   def __init__(self, num) :
+    self.name = 'troop_track'
     self.__troops = num
     self.__troops_max = num
 
+  def troops(self) : return self.get_troops()
   def get_troops(self) : return self.__troops
 
   def inc_troops(self, amt) :
@@ -5233,53 +5236,6 @@ class Labyrinth(cmd.Cmd):
   def can_withdraw_Q(self, rest) :
     return self.board.world['United States'].soft_Q()
 
-  def do_withdraw(self, rest):
-    if not can_withdraw_Q() :
-      print("No Withdrawl with US Posture Hard\n")
-      return
-
-    moveFrom = None
-    available = 0
-
-    while not moveFrom:
-      input = self.getCountryFromUser("Withdrawl in what country?  (? for list): ", "XXX", self.get_regime_change())
-      if input == "":
-        print("")
-        return
-      else:
-        if self.board.world[input].regime_change_Q():
-          moveFrom = input
-          available = self.map[input].troops()
-        else:
-          print("Country not Regime Change.")
-          print("")
-    moveTo = None
-    while not moveTo:
-      input = self.getCountryFromUser("To what country (track for Troop Track)  (? for list)?: ",  "track", self.listDeployOptions)
-      if input == "":
-        print("")
-        return
-      elif input == "track":
-        print("Withdraw troops from %s to Troop Track\n" % moveFrom)
-        moveTo = input
-      else:
-        print("Withdraw troops from %s to %s\n" % (moveFrom, input))
-        moveTo = input
-    howMany = 0
-    while not howMany:
-      input = self.getNumTroopsFromUser("Withdraw how many troops (%d available)? " % available, available)
-      if input == "":
-        print("")
-        return
-      else:
-        howMany = input
-    preFirstRoll = self.getRollFromUser("Enter first die (Raise/Drop) for Prestige roll or r to have program roll: ")
-    preSecondRoll = self.getRollFromUser("Enter second die for Prestige roll or r to have program roll: ")
-    preThirdRoll = self.getRollFromUser("Enter thrid die for Prestige roll or r to have program roll: ")
-    self.handleWithdraw(moveFrom, moveTo, howMany, (preFirstRoll, preSecondRoll, preThirdRoll))
-
-  def help_withdraw(self):
-    print("Withdraw Troops from Regime Change Country.")
 
   def do_j(self, rest):
     cardNum = None
@@ -5520,7 +5476,7 @@ class Labyrinth(cmd.Cmd):
     if src == 'troop_track' and self.board.troop_track.get_troops() < num :
       return (False, src, 'not_enough')
       
-    if self.board.country(src).troops_stationed < num :
+    if src != 'troop_track' and self.board.country(src).troops_stationed < num :
       return (False, src, 'not_enough')
 
     if src != 'troop_track' and self.board.country(src).regime_change_Q() :
@@ -5532,7 +5488,7 @@ class Labyrinth(cmd.Cmd):
       return (False, dst, 'not_allied')
 
     x, t = self.board.place_troops(dst, num, src)
-    if t != num : raise Exception("units moved is different")
+    if t != num : raise Exception("The request number of units to deploy could not be satisfied")
     return (True, dst, num, src)
 
 def getUserYesNoResponse(prompt):
@@ -5620,30 +5576,80 @@ class UICmd(cmd.Cmd) :
     if len(args) == 0 :
       print(self.game.board)
     else :
-      print(self.game.board.country_summary(args))
+      print(self.game.board.country_summary(args.lower().title()))
 
   def complete_status(self, text, line, begidx, endidx) :
-    return [ c for c in list(self.game.board.world.keys()) if c.startswith(text) ]
+    return [ c for c in list(self.game.board.world.keys()) if c.lower().startswith(text.lower()) ]
 
   def help_status(self):
     print("    Display status of game or single country")
     print("    Usage: status OR status <country>\n")
 
+  def do_withdraw(self, rest):
+    if not self.game.can_withdraw_Q() :
+      print("    7.3.5 - No withdrawl with US Posture Hard\n")
+      return
+
+    moveFrom = None
+    available = 0
+
+    while not moveFrom:
+      input = self.getCountryFromUser("Withdrawl in what country?  (? for list): ", "XXX", self.get_regime_change())
+      if input == "":
+        print("")
+        return
+      else:
+        if self.board.world[input].regime_change_Q():
+          moveFrom = input
+          available = self.map[input].troops()
+        else:
+          print("Country not Regime Change.")
+          print("")
+    moveTo = None
+    while not moveTo:
+      input = self.getCountryFromUser("To what country (track for Troop Track)  (? for list)?: ",  "track", self.listDeployOptions)
+      if input == "":
+        print("")
+        return
+      elif input == "track":
+        print("Withdraw troops from %s to Troop Track\n" % moveFrom)
+        moveTo = input
+      else:
+        print("Withdraw troops from %s to %s\n" % (moveFrom, input))
+        moveTo = input
+    howMany = 0
+    while not howMany:
+      input = self.getNumTroopsFromUser("Withdraw how many troops (%d available)? " % available, available)
+      if input == "":
+        print("")
+        return
+      else:
+        howMany = input
+    preFirstRoll = self.getRollFromUser("Enter first die (Raise/Drop) for Prestige roll or r to have program roll: ")
+    preSecondRoll = self.getRollFromUser("Enter second die for Prestige roll or r to have program roll: ")
+    preThirdRoll = self.getRollFromUser("Enter thrid die for Prestige roll or r to have program roll: ")
+    self.handleWithdraw(moveFrom, moveTo, howMany, (preFirstRoll, preSecondRoll, preThirdRoll))
+
+  def help_withdraw(self):
+    print("    US Action - 7.3.5: Special Deploy")
+    print("    Usage: withdraw <to country> <num of troops> <from country>")
+
   def parse_deploy(self, line, params) :
-    m = re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/]+( [a-zA-Z]+)?)$')
+    print(line)
+    m = re.match('([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/_]+( [a-zA-Z]+)?)$', line)
     if m == None : return False
 
-    params['dst'] = m.group(1)
+    params['dst'] = m.group(1).lower().title()
     params['num'] = int(m.group(3))
-    params['src'] = m.group(4)
+    params['src'] = m.group(4).lower().title()
 
-    return False
+    return True
 
   def do_deploy(self, line):
     args = {}
 
     if not self.parse_deploy(line, args) :
-      print("Unknown usage\n")
+      print("   Unknown usage\n")
       self.help_deploy()
       return False
 
@@ -5661,29 +5667,41 @@ class UICmd(cmd.Cmd) :
       return False
 
     if res[0] == False and res[2] == 'not_allied':
-      print("   Can not deploy to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
+      print("   7.3.3. - Can not deploy to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
       return False
 
   def complete_deploy(self, text, line, begidx, endidx) :
-    # NEED TO ADD TROOP TRACK!!
     if re.match("deploy $", line) != None and len(text) <= 0 :
       allied = self.game.board.get_allied_countries()
       if len(allied) == 1 : return [ allied[0].name ]
-      return [ "%s (%d)" % (c.name, c.troops()) for c in allied]
-    elif re.match('deploy ([a-zA-Z/]+)$', line) != None:
-      allied = self.game.board.get_allied_countries()
+      return [ "%s (%d)" % (c.name, c.troops()) for c in allied ] + [ "troop_track (%d)" % self.game.board.troop_track.troops() ]
+
+    elif re.match('deploy ([a-zA-Z/_]+)$', line) != None:
+      allied = self.game.board.get_allied_countries() + [self.game.board.troop_track]
       if len(allied) == 1 : return [ allied[0].name ]
-      return [ c.name for c in allied if c.name.startswith(text) ]
-    elif re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) $', line) != None:
+      return [ c.name for c in allied if c.name.lower().startswith(text.lower()) ]
+
+    elif re.match('deploy ([a-zA-Z/_]+( [a-zA-Z]+)?) $', line) != None:
       tc = self.game.board.get_troops_countries()
-      if len(tc) == 1 : return [ tc[0].troops_stationed ]
+      if self.game.board.troop_track.troops() > 0 : tc += [self.game.board.troop_track]
+      if len(tc) == 1 : return [ tc[0].troops() ]
       return ([ "%s (%d)" % (c.name, c.troops()) for c in tc ])
-    elif re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) $', line) != None:
-      m = re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) $', line)
+
+    elif re.match('deploy ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) $', line) != None:
+      m = re.match('deploy ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) $', line)
       t = int(m.group(3))
       tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t ]
-      if len(tc) == 1 and tc[0].troops_stationed >= t : return [ tc[0].name ]
+      if self.game.board.troop_track.troops() >= t : tc += [self.game.board.troop_track]
+      if len(tc) == 1 and tc[0].troops() >= t : return [ tc[0].name ]
       return ([ "%s (%d)" % (c.name, c.troops()) for c in tc ])
+
+    elif re.match('deploy ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/_]+)$', line) != None:
+      m = re.match('deploy ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/_]+)$', line)
+      t = int(m.group(3))
+      tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t ]
+      if self.game.board.troop_track.troops() >= t : tc += [self.game.board.troop_track]
+      return [ c.name for c in tc if c.name.lower().startswith(text.lower()) ]
+      
     else : return []
     
 
