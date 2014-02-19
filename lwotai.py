@@ -27,6 +27,7 @@ import sys
 import cmd
 import random
 import shutil
+import re
 try:
   import cPickle as pickle
 except:
@@ -2418,6 +2419,10 @@ class Board():
     self.app = theapp
     self.world = self.world_setup(world_config)
 
+  def country(self, country) :
+    if country not in self.world.keys() : raise UnknownCountry(country)
+    return self.world[country]
+
   def clear_lapsing_events(self) : self.__lapsing_events = []
   def lapsing_events(self) : return list(self.__lapsing_events)
   def events(self) : return list(self.__events)
@@ -2647,7 +2652,12 @@ class Board():
     for n,c in self.world.items() :
       if c.ally_Q() : l.append(c)
       elif n == "Philippines" and "Abu Sayyaf" in c.markers : l.append(c)
+    return l
 
+  def get_troops_countries(self) :
+    l = []
+    for n,c in self.world.items() :
+      if c.troops() > 0 : l.append(c)
     return l
 
   def gwot(self):
@@ -5058,78 +5068,6 @@ class Labyrinth(cmd.Cmd):
     print("Display Game History.  Type 'history save' to save history to a file called history.txt.")
     print("")
 
-  def do_deploy(self, rest):
-    moveFrom = None
-    available = 0
-    while not moveFrom:
-      input = self.getCountryFromUser("From what country (track for Troop Track) (? for list)?: ",  "track", self.listCountriesWithTroops)
-      if input == "":
-        print("")
-        return
-      elif input == "track":
-        if self.board.troop_track.get_troops() <= 0:
-          print("There are no troops on the Troop Track.")
-          print("")
-          return
-        else:
-          print("Deploy from Troop Track - %d available" % self.board.troop_track.get_troops())
-          print("")
-          available = self.board.troop_track.get_troops()
-          moveFrom = input
-      else:
-        if self.map[input].troops() <= 0:
-          print("There are no troops in %s." % input)
-          print("")
-          return
-        else:
-          print("Deploy from %s = %d availalbe" % (input, self.map[input].troops()))
-          print("")
-          available = self.map[input].troops()
-          moveFrom = input
-    moveTo = None
-    while not moveTo:
-      input = self.getCountryFromUser("To what country (track for Troop Track)  (? for list)?: ",  "track", self.board.get_allied_countries())
-      if input == "":
-        print("")
-        return
-      elif input == "track":
-        print("Deploy troops from %s to Troop Track" % moveFrom)
-        print("")
-        moveTo = input
-      else:
-        print("Deploy troops from %s to %s" % (moveFrom, input))
-        print("")
-        moveTo = input
-    howMany = 0
-    while not howMany:
-      input = self.getNumTroopsFromUser("Deploy how many troops (%d available)? " % available, available)
-      if input == "":
-        print("")
-        return
-      else:
-        howMany = input
-    if moveFrom == "track":
-      self.board.troop_track.dec_troops(howMany)
-      troopsLeft = self.board.troop_track.get_troops()
-    else:
-      if self.map[moveFrom].regime_change:
-        if (self.map[moveFrom].troops() - howMany) < (5 + self.map[moveFrom].totalCells(True)):
-          print("You cannot move that many troops from a Regime Change country.")
-          print("")
-          return
-      self.map[moveFrom].changeTroops(-howMany)
-      troopsLeft = self.map[moveFrom].troops()
-    if moveTo == "track":
-      self.board.troop_track.inc_troops(howMany)
-      troopsNow = self.board.troop_track.get_troops()
-    else:
-      self.map[moveTo].changeTroops(howMany)
-      troopsNow = self.map[moveTo].troops()
-    self.outputToHistory("* %d troops deployed from %s (%d) to %s (%d)" % (howMany, moveFrom, troopsLeft, moveTo, troopsNow))
-
-  def help_deploy(self):
-    print("Move Trops")
-    print("")
 
   def do_disrupt(self, rest):
     where = None
@@ -5578,6 +5516,24 @@ class Labyrinth(cmd.Cmd):
       except:
         print("Entry error\n")
 
+  def deploy(self, dst, num, src) :
+    if src == 'troop_track' and self.board.troop_track.get_troops() < num :
+      return (False, src, 'not_enough')
+      
+    if self.board.country(src).troops_stationed < num :
+      return (False, src, 'not_enough')
+
+    if src != 'troop_track' and self.board.country(src).regime_change_Q() :
+      c = self.board.country(src)
+      if (c.troops_stationed - num) < (c.totalCells(True) + 5) :
+        return (False, src, 'regime_change_troop_restriction')
+
+    if dst != 'troop_track' and self.board.country(dst) not in self.board.get_allied_countries() :
+      return (False, dst, 'not_allied')
+
+    x, t = self.board.place_troops(dst, num, src)
+    if t != num : raise Exception("units moved is different")
+    return (True, dst, num, src)
 
 def getUserYesNoResponse(prompt):
   good = None
@@ -5672,7 +5628,69 @@ class UICmd(cmd.Cmd) :
     return [ c for c in list(self.game.board.world.keys()) if c.startswith(text) ]
 
   def help_status(self):
-    print("Display game status.  status [country] will print out status of single country.\n")
+    print("    Display status of game or single country")
+    print("    Usage: status OR status <country>\n")
+
+  def parse_deploy(self, line, params) :
+    m = re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/]+( [a-zA-Z]+)?)$'
+    if m == None : return False
+
+    params['dst'] = m.group(1)
+    params['num'] = int(m.group(3))
+    params['src'] = m.group(4)
+
+    return False
+
+  def do_deploy(self, line):
+    args = {}
+
+    if not self.parse_deploy(line, args) :
+      print("Unknown usage\n")
+      self.help_deploy()
+      return False
+
+    res = self.game.deploy(args['dst'], args['num'], args['src'])
+    if res[0] == True : 
+      print("   Deployed to %s, %d troops, from %s" % (args['dst'], args['num'], args['src']))
+      return False
+
+    if res[0] == False and res[2] == 'not_enough':
+      print("   Not enough troops in %s (%d) to deploy" % (src, self.board.country(src).troops_stationed)) 
+      return False
+
+    if res[0] == False and res[2] == 'regime_change_troop_restriction' :
+      print("   Not enough troops in %s (%d) to deploy [7.3.1]")
+      return False
+
+    if res[0] == False and res[2] == 'not_allied':
+      print("   Can not deploy to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
+      return False
+
+  def complete_deploy(self, text, line, begidx, endidx) :
+    if re.match("deploy $", line) != None and len(text) <= 0 :
+      allied = self.game.board.get_allied_countries()
+      if len(allied) == 1 : return [ allied[0].name ]
+      return [ "%s (%d)" % (c.name, c.troops()) for c in allied]
+    elif re.match('deploy ([a-zA-Z/]+)$', line) != None:
+      allied = self.game.board.get_allied_countries()
+      if len(allied) == 1 : return [ allied[0].name ]
+      return [ c.name for c in allied if c.name.startswith(text) ]
+    elif re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) $', line) != None:
+      tc = self.game.board.get_troops_countries()
+      if len(tc) == 1 : return [ tc[0].troops_stationed ]
+      return ([ "%s (%d)" % (c.name, c.troops()) for c in tc ])
+    elif re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) $', line) != None:
+      m = re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) $', line)
+      t = int(m.group(3))
+      tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t ]
+      if len(tc) == 1 and tc[0].troops_stationed >= t : return [ tc[0].name ]
+      return ([ "%s (%d)" % (c.name, c.troops()) for c in tc ])
+    else : return []
+    
+
+  def help_deploy(self):
+    print("   US Action: Deploy - 7.3")
+    print("   Usage: deploy <to country> <num of troops> <from country>\n")
 
   def do_quit(self, args) : return True
 
