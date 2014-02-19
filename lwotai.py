@@ -156,7 +156,7 @@ class Country:
   def get_stats(self) :
     return dict(
       c = self
-      , name = self.name
+      , name = self.name[0:15]
       , culture = self.culture
       , posture = self.posture
       , alignment = self.alignment
@@ -2463,7 +2463,7 @@ class Board():
       if self.world[country].test_alignment_Q() :
         self.__set_alignment__(country, Alignment.NEUTRAL)
 
-      return f(country, *args)
+      if f != None : return f(country, *args)
 
     else : raise UnknownCountry(country)
     
@@ -2979,7 +2979,7 @@ class Labyrinth(cmd.Cmd):
     
   def test_countries(self, countries):
     for country in countries :
-      self.testCountry(country) 
+      self.board.test_country(country) 
 
   def num_good_resources(self):
     return sum([ self.countryResources(n) for n, c in self.map.items() if c.governance == Governance.GOOD and (c.shia_mix_Q() or c.suni_Q())])
@@ -5608,8 +5608,6 @@ class UICmd(cmd.Cmd) :
   def preloop(self) :
     self.main_menu()
 
-#  def precmd(self, line) :
-    
   def postcmd(self, stop, line) :
     if self.state == self.GameState.MAIN_MENU :
       return stop      
@@ -5632,7 +5630,7 @@ class UICmd(cmd.Cmd) :
     print("    Usage: status OR status <country>\n")
 
   def parse_deploy(self, line, params) :
-    m = re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/]+( [a-zA-Z]+)?)$'
+    m = re.match('deploy ([a-zA-Z/]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/]+( [a-zA-Z]+)?)$')
     if m == None : return False
 
     params['dst'] = m.group(1)
@@ -5667,6 +5665,7 @@ class UICmd(cmd.Cmd) :
       return False
 
   def complete_deploy(self, text, line, begidx, endidx) :
+    # NEED TO ADD TROOP TRACK!!
     if re.match("deploy $", line) != None and len(text) <= 0 :
       allied = self.game.board.get_allied_countries()
       if len(allied) == 1 : return [ allied[0].name ]
@@ -5802,4 +5801,3 @@ def main():
 
 if __name__ == "__main__":
   UICmd().cmdloop()
-  #main()
