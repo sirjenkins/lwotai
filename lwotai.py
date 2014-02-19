@@ -98,6 +98,7 @@ class Posture(Enum):
 COUNTRY_STATS = {'governance': Governance, 'alignment': Alignment}
 POSTURE_DIVIDE = 4
 GOVERNANCE_DIVIDE = 4
+ROLL_PRESTIGE_DIVIDE = 4
 
 class UnknownCountry(Exception):
   def __init__(self, value):
@@ -5472,6 +5473,13 @@ class Labyrinth(cmd.Cmd):
       except:
         print("Entry error\n")
 
+  def roll_prestige(self) :
+    presMultiplier = 1
+    if random_roll() <= ROLL_PRESTIGE_DIVIDE:
+      self.board.prestige_track.dec_prestige(min(random_roll(), random_roll()))
+    else :
+      self.board.prestige_track.inc_prestige(min(random_roll(), random_roll()))
+
   def deploy(self, dst, num, src) :
     if src == 'troop_track' and self.board.troop_track.get_troops() < num :
       return (False, src, 'not_enough')
@@ -5487,6 +5495,21 @@ class Labyrinth(cmd.Cmd):
     if dst != 'troop_track' and self.board.country(dst) not in self.board.get_allied_countries() :
       return (False, dst, 'not_allied')
 
+    x, t = self.board.place_troops(dst, num, src)
+    if t != num : raise Exception("The request number of units to deploy could not be satisfied")
+    return (True, dst, num, src)
+
+  def withdraw(self, dst, num, src) :
+    if not self.game.can_withdraw_Q() :
+      return (False, dst, num, src, 'us_posture_hard')
+    elif not self.board.country(src).regime_change_Q() :
+      return (False, dst, num, src, 'not_regime_change')
+    elif and self.board.country(src).troops_stationed < num :
+      return (False, dst, num, src, 'not_enough')
+    elif dst != 'troop_track' and self.board.country(dst) not in self.board.get_allied_countries() :
+      return (False, dst, num, src, 'not_allied')
+
+    self.roll_prestige()
     x, t = self.board.place_troops(dst, num, src)
     if t != num : raise Exception("The request number of units to deploy could not be satisfied")
     return (True, dst, num, src)
@@ -5586,45 +5609,33 @@ class UICmd(cmd.Cmd) :
     print("    Usage: status OR status <country>\n")
 
   def do_withdraw(self, rest):
-    if not self.game.can_withdraw_Q() :
+    args = {}
+
+    if not self.parse_deploy(line, args) :
+      print("   Unknown usage\n")
+      self.help_deploy()
+      return False
+
+    if args['num'] < 1 :
+      print("   Number of units to withdraw must be greater than zero\n")
+      return False
+
+    res = self.game.withdraw(args['dst'], args['num'], args['src'])    
+
+    if res[0] == False and res[3] == 'us_posture_hard' :
       print("    7.3.5 - No withdrawl with US Posture Hard\n")
-      return
+      return False
+    elif res[0] == False and res[3] == 'not_regime_change' :
+      print("    7.3.5 - %s is not a Regime Change country\n" % args['src'])
+      return False
+    elif res[0] == False and res[3] == 'not_enough' :
+      print("   Not enough troops in %s (%d) to withdraw" % (src, self.board.country(src).troops_stationed)) 
+      return False
+    elif res[0] == False and res[3] == 'not_allied':
+      print("   7.3.3. - Can not withdraw to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
+      return False
 
-    moveFrom = None
-    available = 0
 
-    while not moveFrom:
-      input = self.getCountryFromUser("Withdrawl in what country?  (? for list): ", "XXX", self.get_regime_change())
-      if input == "":
-        print("")
-        return
-      else:
-        if self.board.world[input].regime_change_Q():
-          moveFrom = input
-          available = self.map[input].troops()
-        else:
-          print("Country not Regime Change.")
-          print("")
-    moveTo = None
-    while not moveTo:
-      input = self.getCountryFromUser("To what country (track for Troop Track)  (? for list)?: ",  "track", self.listDeployOptions)
-      if input == "":
-        print("")
-        return
-      elif input == "track":
-        print("Withdraw troops from %s to Troop Track\n" % moveFrom)
-        moveTo = input
-      else:
-        print("Withdraw troops from %s to %s\n" % (moveFrom, input))
-        moveTo = input
-    howMany = 0
-    while not howMany:
-      input = self.getNumTroopsFromUser("Withdraw how many troops (%d available)? " % available, available)
-      if input == "":
-        print("")
-        return
-      else:
-        howMany = input
     preFirstRoll = self.getRollFromUser("Enter first die (Raise/Drop) for Prestige roll or r to have program roll: ")
     preSecondRoll = self.getRollFromUser("Enter second die for Prestige roll or r to have program roll: ")
     preThirdRoll = self.getRollFromUser("Enter thrid die for Prestige roll or r to have program roll: ")
@@ -5653,19 +5664,19 @@ class UICmd(cmd.Cmd) :
       self.help_deploy()
       return False
 
+    if args['num'] < 1 :
+      print("   Number of units to deploy must be greater than zero\n")
+      return False
     res = self.game.deploy(args['dst'], args['num'], args['src'])
     if res[0] == True : 
       print("   Deployed to %s, %d troops, from %s" % (args['dst'], args['num'], args['src']))
       return False
-
     if res[0] == False and res[2] == 'not_enough':
       print("   Not enough troops in %s (%d) to deploy" % (src, self.board.country(src).troops_stationed)) 
       return False
-
     if res[0] == False and res[2] == 'regime_change_troop_restriction' :
       print("   Not enough troops in %s (%d) to deploy [7.3.1]")
       return False
-
     if res[0] == False and res[2] == 'not_allied':
       print("   7.3.3. - Can not deploy to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
       return False
