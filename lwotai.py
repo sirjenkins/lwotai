@@ -5234,7 +5234,7 @@ class Labyrinth(cmd.Cmd):
   def help_regime(self):
     print("Regime Change in Islamist Rule Country.")
 
-  def can_withdraw_Q(self, rest) :
+  def can_withdraw_Q(self) :
     return self.board.world['United States'].soft_Q()
 
 
@@ -5474,7 +5474,6 @@ class Labyrinth(cmd.Cmd):
         print("Entry error\n")
 
   def roll_prestige(self) :
-    presMultiplier = 1
     if random_roll() <= ROLL_PRESTIGE_DIVIDE:
       self.board.prestige_track.dec_prestige(min(random_roll(), random_roll()))
     else :
@@ -5500,11 +5499,11 @@ class Labyrinth(cmd.Cmd):
     return (True, dst, num, src)
 
   def withdraw(self, dst, num, src) :
-    if not self.game.can_withdraw_Q() :
+    if not self.can_withdraw_Q() :
       return (False, dst, num, src, 'us_posture_hard')
     elif not self.board.country(src).regime_change_Q() :
       return (False, dst, num, src, 'not_regime_change')
-    elif and self.board.country(src).troops_stationed < num :
+    elif self.board.country(src).troops_stationed < num :
       return (False, dst, num, src, 'not_enough')
     elif dst != 'troop_track' and self.board.country(dst) not in self.board.get_allied_countries() :
       return (False, dst, num, src, 'not_allied')
@@ -5608,12 +5607,12 @@ class UICmd(cmd.Cmd) :
     print("    Display status of game or single country")
     print("    Usage: status OR status <country>\n")
 
-  def do_withdraw(self, rest):
+  def do_withdraw(self, line):
     args = {}
 
     if not self.parse_deploy(line, args) :
       print("   Unknown usage\n")
-      self.help_deploy()
+      self.help_withdraw()
       return False
 
     if args['num'] < 1 :
@@ -5621,32 +5620,55 @@ class UICmd(cmd.Cmd) :
       return False
 
     res = self.game.withdraw(args['dst'], args['num'], args['src'])    
-
-    if res[0] == False and res[3] == 'us_posture_hard' :
+    if res[0] == False and res[4] == 'us_posture_hard' :
       print("    7.3.5 - No withdrawl with US Posture Hard\n")
-      return False
-    elif res[0] == False and res[3] == 'not_regime_change' :
+    elif res[0] == False and res[4] == 'not_regime_change' :
       print("    7.3.5 - %s is not a Regime Change country\n" % args['src'])
-      return False
-    elif res[0] == False and res[3] == 'not_enough' :
+    elif res[0] == False and res[4] == 'not_enough' :
       print("   Not enough troops in %s (%d) to withdraw" % (src, self.board.country(src).troops_stationed)) 
-      return False
-    elif res[0] == False and res[3] == 'not_allied':
+    elif res[0] == False and res[4] == 'not_allied':
       print("   7.3.3. - Can not withdraw to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
-      return False
+    elif res[0] == True :
+      print("   Withdrawn to %s, %d troops, from %s" % (args['dst'], args['num'], args['src']))
 
-
-    preFirstRoll = self.getRollFromUser("Enter first die (Raise/Drop) for Prestige roll or r to have program roll: ")
-    preSecondRoll = self.getRollFromUser("Enter second die for Prestige roll or r to have program roll: ")
-    preThirdRoll = self.getRollFromUser("Enter thrid die for Prestige roll or r to have program roll: ")
-    self.handleWithdraw(moveFrom, moveTo, howMany, (preFirstRoll, preSecondRoll, preThirdRoll))
+    return False
 
   def help_withdraw(self):
     print("    US Action - 7.3.5: Special Deploy")
     print("    Usage: withdraw <to country> <num of troops> <from country>")
 
+  def complete_withdraw(self, text, line, begidx, endidx) :
+    if re.match("withdraw $", line) != None and len(text) <= 0 :
+      allied = self.game.board.get_allied_countries()
+      if len(allied) == 1 : return [ allied[0].name ]
+      return [ "%s (%d)" % (c.name, c.troops()) for c in allied ] + [ "troop_track (%d)" % self.game.board.troop_track.troops() ]
+
+    elif re.match('withdraw ([a-zA-Z/_]+)$', line) != None:
+      allied = self.game.board.get_allied_countries() + [self.game.board.troop_track]
+      if len(allied) == 1 : return [ allied[0].name ]
+      return [ c.name for c in allied if c.name.lower().startswith(text.lower()) ]
+
+    elif re.match('withdraw ([a-zA-Z/_]+( [a-zA-Z]+)?) $', line) != None:
+      tc = self.game.board.get_troops_countries()
+      if len(tc) == 1 : return [ tc[0].troops() ]
+      return ([ "%s (%d)" % (c.name, c.troops()) for c in tc if c.regime_change_Q()])
+
+    elif re.match('withdraw ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) $', line) != None:
+      m = re.match('withdraw ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) $', line)
+      t = int(m.group(3))
+      tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t and c.regime_change_Q()]
+      if len(tc) == 1 and tc[0].troops() >= t : return [ tc[0].name ]
+      return ([ "%s (%d)" % (c.name, c.troops()) for c in tc ])
+
+    elif re.match('withdraw ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/_]+)$', line) != None:
+      m = re.match('withdraw ([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/_]+)$', line)
+      t = int(m.group(3))
+      tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t and c.regime_change_Q()]
+      return [ c.name for c in tc if c.name.lower().startswith(text.lower()) ]
+      
+    else : return []
+
   def parse_deploy(self, line, params) :
-    print(line)
     m = re.match('([a-zA-Z/_]+( [a-zA-Z]+)?) ([0-9]+) ([a-zA-Z/_]+( [a-zA-Z]+)?)$', line)
     if m == None : return False
 
@@ -5667,19 +5689,17 @@ class UICmd(cmd.Cmd) :
     if args['num'] < 1 :
       print("   Number of units to deploy must be greater than zero\n")
       return False
+
     res = self.game.deploy(args['dst'], args['num'], args['src'])
     if res[0] == True : 
       print("   Deployed to %s, %d troops, from %s" % (args['dst'], args['num'], args['src']))
-      return False
-    if res[0] == False and res[2] == 'not_enough':
+    elif res[0] == False and res[2] == 'not_enough':
       print("   Not enough troops in %s (%d) to deploy" % (src, self.board.country(src).troops_stationed)) 
-      return False
-    if res[0] == False and res[2] == 'regime_change_troop_restriction' :
+    elif res[0] == False and res[2] == 'regime_change_troop_restriction' :
       print("   Not enough troops in %s (%d) to deploy [7.3.1]")
-      return False
-    if res[0] == False and res[2] == 'not_allied':
+    elif res[0] == False and res[2] == 'not_allied':
       print("   7.3.3. - Can not deploy to %s (%s)" % (args['dst'], self.game.board.country(args['dst']).alignment.name))
-      return False
+    return False
 
   def complete_deploy(self, text, line, begidx, endidx) :
     if re.match("deploy $", line) != None and len(text) <= 0 :
