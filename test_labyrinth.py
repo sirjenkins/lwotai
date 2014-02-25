@@ -8,6 +8,7 @@ from lwotai import Labyrinth
 from lwotai import Governance
 from lwotai import Alignment
 from lwotai import Posture
+from lwotai import random_roll
 
 import unittest
 
@@ -153,8 +154,8 @@ class Scenarios(unittest.TestCase):
     self.assertEqual(app.board.world["Somalia"].besieged, 1)
     self.assertEqual(app.board.world["United States"].posture, Posture.HARD)
 
-class Map(unittest.TestCase):
-  '''Map'''
+class Board(unittest.TestCase):
+  '''Board'''
 
   def test_countries_exist(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
@@ -164,12 +165,18 @@ class Map(unittest.TestCase):
     self.assertEqual(len(k), len(countries))
     for x in countries : self.assertTrue(x in k)
 
-  def test_adjacency(self):
+  def test_adjacency(self) :
     '''Test Map'''
     app = Labyrinth(TEST_SCENARIO, 1)
     for country in app.board.world:
       for link in app.board.world[country].links:
         self.assertTrue(app.board.world[country] in link.links)
+
+  def test_random_roll(self) :
+    for x in range(0, 20) :
+      res = random_roll()
+      self.assertEqual(type(res), type(int()))
+      self.assertTrue( res in range(1,7) )
 
 class Deck(unittest.TestCase):
   '''Deck tests'''
@@ -446,6 +453,64 @@ class reassessmentHandler(unittest.TestCase):
     app.handleReassessment()
     self.assertEqual(app.map["United States"].posture, Posture.HARD)
 
+class deploy(unittest.TestCase) :
+  '''Test Deploy Action'''
+  def test_deploy(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
+    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+    self.assertEqual(app.map["Gulf States"].troops(), 4)
+    res = app.deploy("Saudi Arabia", 2, "Gulf States")
+    self.assertTrue(res[0])
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 4)
+    self.assertEqual(app.map["Gulf States"].troops(), 2)
+
+  def test_not_enough(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
+    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+    self.assertEqual(app.map["Gulf States"].troops(), 4)
+    res = app.deploy("Saudi Arabia", 6, "Gulf States")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'not_enough')
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+    self.assertEqual(app.map["Gulf States"].troops(), 4)
+
+  def test_not_enough_troop_track(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
+    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+    self.assertEqual(app.board.troop_track.troops(), 7)
+    res = app.deploy("Saudi Arabia", 8, "troop_track")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'not_enough')
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+    self.assertEqual(app.board.troop_track.troops(), 7)
+
+  def test_regime_change_troop_restriction(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    app.board.set_country_event_in_play("Saudi Arabia", "regime_change")
+    self.assertEqual(app.board.country("Saudi Arabia").regime_change, 1)
+    res = app.deploy("Gulf States", 2, "Saudi Arabia")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'regime_change_troop_restriction')
+    self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+    self.assertEqual(app.map["Gulf States"].troops(), 4)
+
+  def test_not_allied(self) :
+    for a in [Alignment.NEUTRAL, Alignment.ADVERSARY] :
+      app = Labyrinth(TEST_SCENARIO, 1)
+      app.board.set_alignment("Saudi Arabia", a)
+      self.assertEqual(app.board.country("Saudi Arabia").alignment, a)
+      res = app.deploy("Saudi Arabia", 2, "Gulf States")
+      self.assertFalse(res[0])
+      self.assertEqual(res[2], 'not_allied')
+      self.assertEqual(app.map["Saudi Arabia"].troops(), 2)
+      self.assertEqual(app.map["Gulf States"].troops(), 4)
+
 class regime_change(unittest.TestCase):
   '''Test Regime Change'''
 
@@ -618,7 +683,7 @@ class regime_change(unittest.TestCase):
     self.assertEqual(app.map["Afghanistan"].sleeper_cells, 0)
     self.assertEqual(app.map["Afghanistan"].active_cells, 4)
     self.assertEqual(app.map["Afghanistan"].regime_change, 1)
-    self.assertNotEqual(app.board.prestige_track.get_prestige(), 12)
+    self.assertNotEqual(app.board.prestige_track.get_prestige(), 7)
     self.assertEqual(app.board.troop_track.get_troops(), 3)
     self.assertEqual(app.map["Pakistan"].troops_stationed, 3)
 
@@ -737,34 +802,35 @@ class withdraw(unittest.TestCase):
     self.assertEqual(app.board.troop_track.get_troops(), 1)
 
   def test_not_allied(self) :
-    app = Labyrinth(TEST_SCENARIO, 1)
-    app.map["United States"].posture = Posture.SOFT
-    app.board.place_troops("Afghanistan", 6)
-    app.board.set_governance("Afghanistan", Governance.POOR)
-    app.board.set_alignment("Afghanistan", Alignment.ALLY)
-    app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid', 'regime_change'])
-    app.board.set_alignment("Saudi Arabia", Alignment.NEUTRAL)
+    for a in [Alignment.NEUTRAL,Alignment.ADVERSARY] :
+      app = Labyrinth(TEST_SCENARIO, 1)
+      app.map["United States"].posture = Posture.SOFT
+      app.board.place_troops("Afghanistan", 6)
+      app.board.set_governance("Afghanistan", Governance.POOR)
+      app.board.set_alignment("Afghanistan", Alignment.ALLY)
+      app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid', 'regime_change'])
+      app.board.set_alignment("Saudi Arabia", a)
 
-    self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
-    self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Afghanistan"].troops_stationed, 6)
-    self.assertEqual(app.map["Afghanistan"].aid, 2)
-    self.assertEqual(app.map["Afghanistan"].besieged, 0)
-    self.assertEqual(app.map["Saudi Arabia"].troops_stationed, 2)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.board.prestige_track.get_prestige(), 7)
-    self.assertEqual(app.board.troop_track.get_troops(), 1)
-    res = app.withdraw("Saudi Arabia", 4, "Afghanistan")
-    self.assertEqual(res[0], False)
-    self.assertEqual(res[4], 'not_allied')
-    self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
-    self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Afghanistan"].troops_stationed, 6)
-    self.assertEqual(app.map["Afghanistan"].aid, 2)
-    self.assertEqual(app.map["Afghanistan"].besieged, 0)
-    self.assertEqual(app.map["Saudi Arabia"].troops_stationed, 2)
-    self.assertEqual(app.board.prestige_track.get_prestige(), 7)
-    self.assertEqual(app.board.troop_track.get_troops(), 1)
+      self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
+      self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
+      self.assertEqual(app.map["Afghanistan"].troops_stationed, 6)
+      self.assertEqual(app.map["Afghanistan"].aid, 2)
+      self.assertEqual(app.map["Afghanistan"].besieged, 0)
+      self.assertEqual(app.map["Saudi Arabia"].troops_stationed, 2)
+      self.assertEqual(app.map["Saudi Arabia"].alignment, a)
+      self.assertEqual(app.board.prestige_track.get_prestige(), 7)
+      self.assertEqual(app.board.troop_track.get_troops(), 1)
+      res = app.withdraw("Saudi Arabia", 4, "Afghanistan")
+      self.assertEqual(res[0], False)
+      self.assertEqual(res[4], 'not_allied')
+      self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
+      self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
+      self.assertEqual(app.map["Afghanistan"].troops_stationed, 6)
+      self.assertEqual(app.map["Afghanistan"].aid, 2)
+      self.assertEqual(app.map["Afghanistan"].besieged, 0)
+      self.assertEqual(app.map["Saudi Arabia"].troops_stationed, 2)
+      self.assertEqual(app.board.prestige_track.get_prestige(), 7)
+      self.assertEqual(app.board.troop_track.get_troops(), 1)
 
 
 #class majorJihadChoice(unittest.TestCase):
