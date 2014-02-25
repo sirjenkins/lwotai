@@ -2583,18 +2583,23 @@ class Board():
     def f(country, events) :
       if type(events).__name__ == 'list' :
         self.world[country].markers.extend(events)
-        if 'besieged' in events :
-          self.world[country].besieged += 1
-        if 'regime_change' in events :
-          self.world[country].regime_change += 1
-          
+        for event in events :
+          if 'besieged' in event :
+            self.world[country].besieged += 1
+          if 'regime_change' in event :
+            self.world[country].regime_change += 1
+          if 'aid' in event :
+            self.world[country].aid += 1
+         
       else:
         self.world[country].markers.append(events)
         if 'besieged' == events :
           self.world[country].besieged += 1
-        if 'regime_change' in events :
+        if 'regime_change' == events :
           self.world[country].regime_change += 1
- 
+        if 'aid' == events :
+          self.world[country].aid += 1
+
     self.test_country(country, f, events)
 
   def unset_country_event_in_play(self, country, events) :
@@ -2602,18 +2607,22 @@ class Board():
       if type(events).__name__ == 'list' :
         for x in events :
           self.world[country].markers.remove(x)
-        if 'besieged' in events :
-          self.world[country].besieged -= 1
-        if 'regime_change' in events :
-          self.world[country].regime_change -= 1
+          if 'besieged' in events :
+            self.world[country].besieged -= 1
+          if 'regime_change' in events :
+            self.world[country].regime_change -= 1
+          if 'aid' in events :
+            self.world[country].aid -= 1
           
       else:
         self.world[country].markers.remove(events)
         if 'besieged' == events :
           self.world[country].besieged -= 1
-        if 'regime_change' in events :
+        if 'regime_change' == events :
           self.world[country].regime_change -= 1
- 
+        if 'aid' == events :
+          self.world[country].aid -= 1
+
     self.test_country(country, f, events)
 
   def set_governance(self, country, level) :
@@ -3487,36 +3496,6 @@ class Labyrinth(cmd.Cmd):
     else:
       self.board.set_posture("United States", Posture.HARD)
     self.outputToHistory("* Reassessment = US Posture now %s" % self.map["United States"].posture)
-
-  def handleRegimeChange(self, where, moveFrom, howMany, govRoll, prestigeRolls):
-    if self.map["United States"].soft_Q(): return
-
-    self.board.place_troops(where, howMany, moveFrom)
-    self.board.activate_sleepers(where)
-    self.board.set_alignment(where, Alignment.ALLY)
-
-    if govRoll <= GOVERNANCE_DIVIDE : self.board.set_governance(where, Governance.POOR)
-    else : self.board.set_governance(where, Governance.FAIR)
-
-    self.board.set_country_event_in_play(where, 'regime_change')
-
-    presMultiplier = 1
-    if prestigeRolls[0] <= 4:
-      presMultiplier = -1
-    self.changePrestige(min(prestigeRolls[1], prestigeRolls[2]) * presMultiplier)
-    self.outputToHistory("* Regime Change in %s" % where, False)
-    self.outputToHistory(self.board.country_summary(where), False)
-    if moveFrom == "troop_track":
-      self.outputToHistory("%d Troops on Troop Track" % self.board.troop_track.get_troops(), False)
-    else:
-      self.outputToHistory("%d Troops in %s" % (self.map[moveFrom].troops(), moveFrom), False)
-    self.outputToHistory("US Prestige %d" % self.board.prestige_track.get_prestige())
-    if where == "Iraq" and "Iraqi WMD" in self.markers:
-      self.markers.remove("Iraqi WMD")
-      self.outputToHistory("Iraqi WMD no longer in play.", True)
-    if where == "Libya" and "Libyan WMD" in self.markers:
-      self.markers.remove("Libyan WMD")
-      self.outputToHistory("Libyan WMD no longer in play.", True)
 
   def handleWithdraw(self, moveFrom, moveTo, howMany, prestigeRolls):
     if self.map["United States"].hard_Q():
@@ -5173,8 +5152,6 @@ class Labyrinth(cmd.Cmd):
   def help_reassessment(self):
     print("Reassessment of US Posture.")
 
-  def can_withdraw_Q(self, country) :
-    return self.board.world['United States'].soft_Q()
 
   def can_regime_change_Q(self) :
     return self.board.world['United States'].hard_Q()
@@ -5440,7 +5417,7 @@ class Labyrinth(cmd.Cmd):
     return (True, dst, num, src)
 
   def withdraw(self, dst, num, src) :
-    if not self.can_withdraw_Q() :
+    if not self.board.country("United States").soft_Q() :
       return (False, dst, num, src, 'us_posture_hard')
     elif not self.board.country(src).regime_change_Q() :
       return (False, dst, num, src, 'not_regime_change')
@@ -5451,6 +5428,8 @@ class Labyrinth(cmd.Cmd):
 
     x, t = self.board.place_troops(dst, num, src)
     if t != num : raise Exception("The request number of units to deploy could not be satisfied")
+    self.board.unset_country_event_in_play(src, [ x for x in self.board.country(src).markers if x == 'aid' ])
+    self.board.set_country_event_in_play(src, 'besieged')
     self.roll_prestige()
     return (True, dst, num, src)
 
