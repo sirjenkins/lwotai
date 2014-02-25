@@ -23,14 +23,17 @@ refactor classes:
 
   UICmd
     (done) status
-    * deploy
-    * withdraw
-    * turn
-    * regime change
+    (done) deploy
+    (done) withdraw
+    (done) regime change
+    (done) prettify scenario setup stdout
+    * reassessment
     * war of ideas
+    * alert
+    * disrupt
+    * turn
     * jihadist card plays
-    * prettify scenario setup stdout
     * colorize output
-
+    * jihad actions
 * fix saving
 
