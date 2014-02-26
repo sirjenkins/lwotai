@@ -14,6 +14,7 @@ refactor classes:
       (done) need to convert 'board tracking' variables in scenario setup to 'board tracking' dependent methods.
       (done) boad summary
       (done) country summary
+      * reserves
 
   extract game rules and enforcement into GameEngine
     * stick mechanics from card in board class
