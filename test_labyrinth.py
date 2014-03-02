@@ -429,32 +429,155 @@ class WOIhandler(unittest.TestCase):
     self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
     self.assertEqual(app.map["Saudi Arabia"].aid, 0)
 
-class alertHandler(unittest.TestCase):
+class alert(unittest.TestCase):
   '''Test Alert'''
 
-  def test_alert(self):
+  def test_alert(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Iraq"].plots, 2)
-    app.handleAlert("Iraq")
-    self.assertEqual(app.map["Iraq"].plots, 1)
-    app.handleAlert("Iraq")
-    self.assertEqual(app.map["Iraq"].plots, 0)
-    app.handleAlert("Iraq")
-    self.assertEqual(app.map["Iraq"].plots, 0)
+    self.assertEqual(app.board.country("Iraq").plots, 2)
 
-class reassessmentHandler(unittest.TestCase):
+    for i in range(app.board.country("Iraq").plots, 0, -1) :
+      res = app.alert("Iraq")
+      self.assertTrue(res[0])
+      self.assertEqual(res[2], i-1)
+
+  def test_no_plots(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    self.assertFalse(app.board.country("Pakistan").plot_Q())
+    res = app.alert("Pakistan")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'no_plots')
+
+class reassessment(unittest.TestCase):
   '''Test Reassessment'''
 
   def test_reassessment(self):
     app = Labyrinth(TEST_SCENARIO, 1)
     self.assertEqual(app.map["United States"].posture, Posture.HARD)
-    app.handleReassessment()
+    app.reassessment()
     self.assertEqual(app.map["United States"].posture, Posture.SOFT)
-    app.handleReassessment()
+    app.reassessment()
     self.assertEqual(app.map["United States"].posture, Posture.HARD)
 
+
+class disrupt(unittest.TestCase) :
+  '''Test Disrupt Action 7.4'''
+
+  def test_disrupt_troops(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    self.assertEqual(app.map['Pakistan'].troops(), 2)
+    self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
+    self.assertEqual(app.map['Pakistan'].active_cells, 4)
+    res = app.disrupt("Pakistan", 2, 0)
+    self.assertTrue(res[0])
+    self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
+    self.assertEqual(app.map['Pakistan'].active_cells, 2)
+
+    res = app.disrupt("Pakistan", 2, 0)
+    self.assertTrue(res[0])
+    self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
+    self.assertEqual(app.map['Pakistan'].active_cells, 0)
+    self.assertTrue(app.map['Pakistan'].cadre_Q())
+
+    res = app.disrupt("Pakistan", 0, 0)
+    self.assertTrue(res[0])
+    self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
+    self.assertEqual(app.map['Pakistan'].active_cells, 0)
+    self.assertFalse(app.map['Pakistan'].cadre_Q())
+
+    app = Labyrinth(TEST_SCENARIO, 1)
+    app.board.place_troops('troop_track', 1, 'Pakistan')
+    self.assertEqual(app.map['Pakistan'].troops(), 1)
+    self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
+    self.assertEqual(app.map['Pakistan'].active_cells, 4)
+    res = app.disrupt("Pakistan", 1, 0)
+    self.assertTrue(res[0])
+    self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
+    self.assertEqual(app.map['Pakistan'].active_cells, 3)
+
+  def test_disrupt_posture(self) :
+    # Hard posture
+    app = Labyrinth(TEST_SCENARIO, 1)
+    app.board.place_cells("Israel", 2, ['funding_track'])
+    self.assertEqual(app.map["Israel"].sleeper_cells, 2)
+    self.assertEqual(app.map["Israel"].active_cells, 0)
+    res = app.disrupt("Israel", 0, 2)
+    self.assertTrue(res[0])
+    self.assertEqual(app.map["Israel"].sleeper_cells, 0)
+    self.assertEqual(app.map["Israel"].active_cells, 2)
+
+    # Soft posture
+    app = Labyrinth(TEST_SCENARIO, 1)
+    app.board.set_posture("United States", Posture.SOFT)
+    app.board.place_cells("United States", 2, ['funding_track'])
+    self.assertEqual(app.map["United States"].sleeper_cells, 2)
+    res = app.disrupt("United States", 0, 2)
+    self.assertTrue(res[0])
+    self.assertEqual(app.map["United States"].sleeper_cells, 1)
+    self.assertEqual(app.map["United States"].active_cells, 1)
+
+  def test_disrupt_cadre(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    app.board.add_cadre("Israel")
+    self.assertTrue(app.map["Israel"].cadre_Q())
+    res = app.disrupt("Israel", 0, 0)
+    self.assertTrue(res[0])
+    self.assertFalse(app.map["Israel"].cadre_Q())
+
+    
+  def test_no_jihad_presence(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    res = app.disrupt("Israel")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'no_jihad_presence')
+
+    res = app.disrupt("Saudi Arabia")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'no_jihad_presence')
+
+  def test_ineligible_disrupt(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    app.board.place_troops('troop_track', 2, 'Pakistan')
+    res = app.disrupt("Pakistan", 1, 0)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'ineligible_disrupt')
+
+    res = app.disrupt("Afghanistan", 0, 1)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'ineligible_disrupt')
+
+  def test_no_active_cells(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    res = app.disrupt("Saudi Arabia", 1, 0)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'no_active_cells')
+
+  def test_no_cadre(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    res = app.disrupt("Pakistan", 0, 0)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'no_cadre')
+
+  def test_no_sleeper_cells(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    res = app.disrupt("Pakistan", 0, 1)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'no_sleeper_cells')
+
+  def test_not_enough_sleepers(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    res = app.disrupt("Gulf States", 0, 2)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'not_enough_sleepers')
+   
+  def test_not_enough_actives(self) :
+    app = Labyrinth(TEST_SCENARIO, 1)
+    res = app.disrupt("Gulf States", 5, 0)
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'not_enough_actives')
+
 class deploy(unittest.TestCase) :
-  '''Test Deploy Action'''
+  '''Test Deploy Action 7.3'''
   def test_deploy(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
     self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)

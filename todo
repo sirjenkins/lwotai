@@ -5,9 +5,7 @@ refactor classes:
     (done) need method to take list of countries and test posture
     (done) get scenario selection menu to derive from scenarios.yml
     (done) map setup
-  refactor cards
-    * tie setup events to removal of cards
-    * needs a dsl instead of per card logic
+
 
   extract board elements into Board class
       * state change methods
@@ -17,7 +15,11 @@ refactor classes:
       * reserves
 
   extract game rules and enforcement into GameEngine
-    * stick mechanics from card in board class
+    refactor cards
+      * tie setup events to removal of cards
+      * needs a dsl instead of per card logic
+      * stick mechanics from card in board class
+    * history tracking
 
   extract jihadist ai into jihadist bot class
     * add in ai difficulty level
@@ -28,10 +30,10 @@ refactor classes:
     (done) withdraw
     (done) regime change
     (done) prettify scenario setup stdout
-    * reassessment
+    (done) reassessment
+    (done) alert
+    (done) disrupt
     * war of ideas
-    * alert
-    * disrupt
     * turn
     * jihadist card plays
     * colorize output
