@@ -5251,6 +5251,7 @@ class Labyrinth(cmd.Cmd):
 
     if not self.board.event_in_play_Q("Al-Anbar") and d_actives == d_sleepers and d_actives == 0 :
       self.board.remove_cadre(c_name)
+      if country.troops() > 0 : self.board.prestige_track.inc_prestige()
       return (True, c_name, country.active_cells, country.sleeper_cells, country.cadre_Q())
     else :
 
@@ -5268,8 +5269,9 @@ class Labyrinth(cmd.Cmd):
       if d_sleepers > sleepers : return (False, c_name, 'not_enough_sleepers')
       self.board.activate_sleepers(c_name, min(d_sleepers, d_limit))
       self.board.remove_active_cells(c_name, min(d_actives, d_limit))
+      if country.troops() > 0 : self.board.prestige_track.inc_prestige()
       country = self.board.country(c_name)
-      if country.jihad_presence_Q() : self.board.add_cadre(c_name)
+      if not country.jihad_presence_Q() : self.board.add_cadre(c_name)
       return (True, c_name, country.active_cells, country.sleeper_cells, country.cadre_Q())
 
   def alert(self, country) :

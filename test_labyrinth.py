@@ -468,10 +468,12 @@ class disrupt(unittest.TestCase) :
     self.assertEqual(app.map['Pakistan'].troops(), 2)
     self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
     self.assertEqual(app.map['Pakistan'].active_cells, 4)
+    prestige = app.board.prestige_track.get_prestige()
     res = app.disrupt("Pakistan", 2, 0)
     self.assertTrue(res[0])
     self.assertEqual(app.map['Pakistan'].sleeper_cells, 0)
     self.assertEqual(app.map['Pakistan'].active_cells, 2)
+    self.assertNotEqual(app.board.prestige_track.get_prestige(), prestige)
 
     res = app.disrupt("Pakistan", 2, 0)
     self.assertTrue(res[0])
