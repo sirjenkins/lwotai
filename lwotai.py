@@ -195,7 +195,7 @@ class Country:
   # Governance Queries
   def test_governance_Q(self):
     return Governance.TEST == self.governance
-    
+
   def good_Q(self):
     return Governance.GOOD == self.governance
 
@@ -2402,7 +2402,7 @@ class PrestigeTrack():
         return PRESTIGE_STATUS[r]
     raise Exception("Out of bounds prestige!")
 
- 
+
 class Board():
   def __init__(self, scenario, world_config, theapp) :
     self.troop_track = TroopTrack(TROOPS_MAX)
@@ -2463,7 +2463,7 @@ class Board():
       if f != None : return f(country, *args)
 
     else : raise UnknownCountry(country)
-    
+
   def cadre_Q(self, country) :
     def f(country) :
       return self.world[country].cadre_Q()
@@ -2475,7 +2475,7 @@ class Board():
       self.world[country].cadre = 1
 
     self.test_country(country, f)
-    
+
   def remove_cadre(self, country) :
     def f(country) :
       self.world[country].cadre = 0
@@ -2532,7 +2532,7 @@ class Board():
         self.world[dst].troops_stationed += t
         self.world[src].troops_stationed -= t
         return (dst, t)
-       
+
       return (dst, num)
 
     if dst != 'troop_track' :
@@ -2605,7 +2605,7 @@ class Board():
             self.world[country].regime_change += 1
           if 'aid' in event :
             self.world[country].aid += 1
-         
+
       else:
         self.world[country].markers.append(events)
         if 'besieged' == events :
@@ -2628,7 +2628,7 @@ class Board():
             self.world[country].regime_change -= 1
           if 'aid' in events :
             self.world[country].aid -= 1
-          
+
       else:
         self.world[country].markers.remove(events)
         if 'besieged' == events :
@@ -2769,7 +2769,7 @@ class Board():
 
       temp += "   {name:<15} {resources:<5} {alignment:<10} {governance:<13} {plots:^5}  [{active_cells:^5}|{sleeper_cells:^4}]  [{troops_stationed:^4}]  {cadre:*<5} {aid:*<3} {besieged:*<8} {regime_change:*<12}\n"
 
-    
+
     c = country.get_stats()
     if country.cadre_Q() : c['cadre'] = 'Cadre'
     else :  c['cadre'] = ''
@@ -2782,7 +2782,7 @@ class Board():
     if country.non_muslim_Q() : c['resources'] = '-'
 
     out += temp.format_map(c)
-    
+
     if out != '' : return heading + out
     return heading + "   None: {k}\n".format(k=kind.upper())
 
@@ -2797,7 +2797,7 @@ class Board():
       else : 
         temp += "   {name:<15} {resources:<5} {alignment:<10} {governance:<13} {plots:^5}  [{active_cells:^5}|{sleeper_cells:^4}]  [{troops_stationed:^4}]  {cadre:*<5} {aid:*<3} {besieged:*<8} {regime_change:*<12}\n"
 
-      
+
       for c in vt[kind] :
         if c['c'].cadre_Q() : c['cadre'] = 'Cadre'
         else :  c['cadre'] = ''
@@ -2810,7 +2810,7 @@ class Board():
         if c['c'].non_muslim_Q() : c['resources'] = '-'
 
         out += temp.format_map(c)
-      
+
       if out != '' : return heading + out
       return heading + "   None: {k}\n".format(k=kind.upper())
 
@@ -2854,7 +2854,7 @@ class Board():
   def __str__(self) :
     out = self.world_summary() + self.tracker_summary()
     return out
- 
+
 
 class Labyrinth(cmd.Cmd):
 
@@ -3015,7 +3015,7 @@ class Labyrinth(cmd.Cmd):
   def randomly_place_cells(self, num_countries, num_cell_per_country):
     for country in random.sample(list(self.map.keys()), num_countries):
       self.board.place_cells(country, num_cell_per_country, ('funding_track'))
-    
+
   def test_countries(self, countries):
     for country in countries :
       self.board.test_country(country) 
@@ -5131,7 +5131,7 @@ class Labyrinth(cmd.Cmd):
     if len(vt['islamist']) > 0 : 
       self.board.prestige_track.dec_prestige()
       mods.append("Islamist Rule")
-    
+
     gwot = self.board.gwot()
     if gwot['world'] == self.board.world['United States'].posture.value and gwot['num'] == 3 :
       self.board.prestige_track.inc_prestige()
@@ -5234,104 +5234,6 @@ class Labyrinth(cmd.Cmd):
     else :
       self.board.prestige_track.inc_prestige(min(random_roll(), random_roll()))
 
-  def handleDisrupt(self, where):
-    numToDisrupt = 1
-    if "Al-Anbar" in self.markers and (where == "Iraq" or where == "Syria"):
-      numToDisrupt = 1
-    elif self.map[where].troops() >= 2 or self.map[where].hard_Q():
-      numToDisrupt = min(2, self.map[where].totalCells(False))
-
-    if self.map[where].totalCells(False) <= 0 and self.map[where].cadre > 0:
-      if "Al-Anbar" not in self.markers:
-        self.outputToHistory("* Cadre removed in %s" % where)
-        self.map[where].cadre = 0
-    elif self.map[where].totalCells(False) <= numToDisrupt:
-      self.outputToHistory("* %d cell(s) disrupted in %s." % (self.map[where].totalCells(False), where), False)
-      if self.map[where].sleeper_cells > 0:
-        self.map[where].active_cells += self.map[where].sleeper_cells
-        numToDisrupt -= self.map[where].sleeper_cells
-        self.map[where].sleeper_cells = 0
-      if numToDisrupt > 0:
-        self.map[where].active_cells -= numToDisrupt
-        self.cells += numToDisrupt
-        if self.map[where].active_cells < 0:
-          self.map[where].active_cells = 0
-        if self.cells > 15:
-          self.cells = 15
-      if self.map[where].totalCells(False) <= 0:
-        self.outputToHistory("Cadre added in %s." % where, False)
-        self.map[where].cadre = 1
-      if self.map[where].troops() >= 2:
-        self.board.prestige_track.inc_prestige(1)
-        if self.board.prestige_track.get_prestige() > 12:
-          self.board.prestige_track.set_prestige(12)
-        self.outputToHistory("US Prestige now %d." % self.prestige, False)
-      self.outputToHistory(self.board.country_summary(where), True)
-    else:
-      if self.map[where].active_cells == 0:
-        self.map[where].active_cells += numToDisrupt
-        self.map[where].sleeper_cells -= numToDisrupt
-        self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where), False)
-      elif self.map[where].sleeper_cells == 0:
-        self.map[where].active_cells -= numToDisrupt
-        self.cells += numToDisrupt
-        self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where), False)
-        if self.map[where].totalCells(False) <= 0:
-          self.outputToHistory("Cadre added in %s." % where, False)
-          self.map[where].cadre = 1
-      else:
-        if numToDisrupt == 1:
-          disStr = None
-          while not disStr:
-            input = self.my_raw_input("You can disrupt one cell. Enter a or s for either an active or sleeper cell: ")
-            input = input.lower()
-            if input == "a" or input == "s":
-              disStr = input
-          if disStr == "a":
-            self.map[where].active_cells -= numToDisrupt
-            self.cells += numToDisrupt
-            self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where))
-          else:
-            self.map[where].sleeper_cells -= numToDisrupt
-            self.map[where].active_cells += numToDisrupt
-            self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where))
-        else:
-          disStr = None
-          while not disStr:
-            if self.map[where].sleeper_cells >= 2 and self.map[where].active_cells >= 2:
-              input = self.my_raw_input("You can disrupt two cells. Enter aa, as, or ss for active or sleeper cells: ")
-              input = input.lower()
-              if input == "aa" or input == "as" or input == "sa" or input == "ss":
-                disStr = input
-            elif self.map[where].sleeper_cells >= 2:
-              input = self.my_raw_input("You can disrupt two cells. Enter as, or ss for active or sleeper cells: ")
-              input = input.lower()
-              if input == "as" or input == "sa" or input == "ss":
-                disStr = input
-            elif self.map[where].active_cells >= 2:
-              input = self.my_raw_input("You can disrupt two cells. Enter aa, or as for active or sleeper cells: ")
-              input = input.lower()
-              if input == "as" or input == "sa" or input == "aa":
-                disStr = input
-          if input == "aa":
-            self.map[where].active_cells -= 2
-            self.cells += 2
-            self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where))
-          elif input == "as" or input == "sa":
-            self.map[where].sleeper_cells -= 1
-            self.cells += 1
-            self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where))
-          else:
-            self.map[where].sleeper_cells -= 2
-            self.map[where].active_cells += 2
-            self.outputToHistory("* %d cell(s) disrupted in %s." % (numToDisrupt, where))
-      if self.map[where].troops() >= 2:
-        self.board.prestige_track.inc_prestige(1)
-        if self.board.prestige_track.get_prestige() > 12:
-          self.board.prestige_track.set_prestige(12)
-        self.outputToHistory("US Prestige now %d." % self.prestige, False)
-      self.outputToHistory(self.board.country_summary(where), True)
-
   def disrupt(self, c_name, d_actives = 0, d_sleepers = 0) :
     if self.board.event_in_play_Q('FATA') : return (FALSE, c_name, 'FATA')
 
@@ -5386,7 +5288,7 @@ class Labyrinth(cmd.Cmd):
   def deploy(self, dst, num, src) :
     if src == 'troop_track' and self.board.troop_track.get_troops() < num :
       return (False, src, 'not_enough')
-      
+
     if src != 'troop_track' and self.board.country(src).troops_stationed < num :
       return (False, src, 'not_enough')
 
@@ -5496,7 +5398,7 @@ class UICmd(cmd.Cmd) :
 
     for opt in self.scenario_opts :
       m_str += "\n   %d -> %s" % (self.scenario_opts.index(opt) + 1, opt.replace('_', ' ').title())
-    
+
     print(m_str)
     self.prompt = "\nSelect scenario: "
 
@@ -5515,7 +5417,7 @@ class UICmd(cmd.Cmd) :
           return False
 
       self.main_menu()
-          
+
     elif self.state == self.GameState.GAME :
       raise Exception("Unknown Command!")
 
@@ -5614,17 +5516,17 @@ class UICmd(cmd.Cmd) :
       if country.active_cells > 0 and country.sleeper_cells == 0 : return "A"
       if country.active_cells > 0 and country.sleeper_cells > 0 : 
         return [ "(S)leeper: %d" % country.sleeper_cells, "[A]ctive: %d" % country.active_cells]
-     
+
   def help_disrupt(self):
     print("   US Action - 7.4 Disrupt")
     print("   Usage: disrupt <country> <ACS><ACS>")
     print("\n   Example: 1 active cell, 1 sleeper.")
     print("     disrupt Saudi Arabia AS")
-    
+
 
   def do_alert(self, line):
     args = {}
-    
+
     if self.parse_target_country(line, args) == False :
       print("   Unknown usage - alert %s\n" % line)
       self.help_alert()
@@ -5722,7 +5624,7 @@ class UICmd(cmd.Cmd) :
       t = int(m.group(3))
       tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t and c.regime_change_Q()]
       return [ c.name for c in tc if c.name.lower().startswith(text.lower()) ]
-      
+
     else : return []
 
   def parse_deploy(self, line, params) :
@@ -5790,9 +5692,9 @@ class UICmd(cmd.Cmd) :
       tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t ]
       if self.game.board.troop_track.troops() >= t : tc += [self.game.board.troop_track]
       return [ c.name for c in tc if c.name.lower().startswith(text.lower()) ]
-      
+
     else : return []
-    
+
   def do_regime_change(self, line):
     args = {}
 
@@ -5853,7 +5755,7 @@ class UICmd(cmd.Cmd) :
       t = int(m.group(3))
       tc = [ c for c in self.game.board.get_troops_countries() if c.troops_stationed >= t and c.regime_change_Q()]
       return [ c.name for c in tc if c.name.lower().startswith(text.lower()) ]
-      
+
     else : return []
 
   def help_regime_change(self):
