@@ -20,6 +20,8 @@ ROLLBACK_FILE = "turn."
 MAP_FILE = "map.yml"
 SCENARIOS_FILE = "scenarios.yml"
 
+TROOPS_MAX = 15
+CELLS_MAX  = 15
 
 import sys
 import cmd
@@ -102,12 +104,6 @@ TROOPS_UPKEEP_REGIME_CHANGE = 5
 MAX_PLOTS = 12
 MAX_DISRUPT = 2
 MIN_DISRUPT = 1
-WOI_DIVIDE = 5
-WOI_AID = range(4,5)
-WOI_ADJ_GOOD = 1
-WOI_TO_GOOD = 1
-TROOPS_MAX = 15
-CELLS_MAX  = 15
 
 class UnknownCountry(Exception):
   def __init__(self, value):
@@ -1195,27 +1191,9 @@ class Card:
                 break
         app.map[target].aid = 1
         app.outputToHistory("Aid added to %s." % target, False)
-#        woiRoll = app.getRollFromUser("Enter WOI Roll or r to have program roll: ")
-#        modRoll = app.modifiedWoIRoll(woiRoll, target, False)
-#        app.handleMuslimWoI(modRoll, target)
-        res = app.war_of_ideas(target)
-        if res[0] == False :
-          if res[2] == 'ineligble_woi' :
-            print("   War of Ideas must target muslim or non-muslim country (7.2)")
-          elif res[2] == 'alignment' :
-            print("   %s alignment must be NEUTRAL or ALLY")
-          elif res[2] == 'regime_change_troop_restriction' :
-            print("   Only %d troops to %d cells (7.2.1.3)")
-        elif res[0] == True :
-          if res[2] == 'success' :
-            print("   War of Ideas success")
-          if res[2] == 'success_prestige' :
-            print("   War of Ideas success: increase prestige (+1)")
-          elif res[2] == 'failed_aid' :
-            print("   War of Ideas failed: add aid")
-          elif res[2] == 'failed' :
-            print("   War of Ideas failed")
-
+        woiRoll = app.getRollFromUser("Enter WOI Roll or r to have program roll: ")
+        modRoll = app.modifiedWoIRoll(woiRoll, target, False)
+        app.handleMuslimWoI(modRoll, target)
       elif self.number == 31: # Wiretapping
         if "Leak-Wiretapping" in app.markers:
           return False
@@ -2621,15 +2599,21 @@ class Board():
       if type(events).__name__ == 'list' :
         self.world[country].markers.extend(events)
         for event in events :
-          if 'besieged' in event : self.world[country].besieged = 1
-          if 'regime_change' in event : self.world[country].regime_change = 1
-          if 'aid' in event : self.world[country].aid += 1
+          if 'besieged' in event :
+            self.world[country].besieged += 1
+          if 'regime_change' in event :
+            self.world[country].regime_change += 1
+          if 'aid' in event :
+            self.world[country].aid += 1
 
       else:
         self.world[country].markers.append(events)
-        if 'besieged' == events : self.world[country].besieged = 1
-        if 'regime_change' == events : self.world[country].regime_change = 1
-        if 'aid' == events : self.world[country].aid += 1
+        if 'besieged' == events :
+          self.world[country].besieged += 1
+        if 'regime_change' == events :
+          self.world[country].regime_change += 1
+        if 'aid' == events :
+          self.world[country].aid += 1
 
     self.test_country(country, f, events)
 
@@ -2638,15 +2622,21 @@ class Board():
       if type(events).__name__ == 'list' :
         for x in events :
           self.world[country].markers.remove(x)
-          if 'besieged' in events : self.world[country].besieged = 0
-          if 'regime_change' in events : self.world[country].regime_change = 0
-          if 'aid' in events : self.world[country].aid = max(self.world[country].aid - 1, 0)
+          if 'besieged' in events :
+            self.world[country].besieged -= 1
+          if 'regime_change' in events :
+            self.world[country].regime_change -= 1
+          if 'aid' in events :
+            self.world[country].aid -= 1
 
       else:
         self.world[country].markers.remove(events)
-        if 'besieged' == events : self.world[country].besieged = 0
-        if 'regime_change' == events : self.world[country].regime_change = 0
-        if 'aid' == events : self.world[country].aid = max(self.world[country].aid - 1, 0)
+        if 'besieged' == events :
+          self.world[country].besieged -= 1
+        if 'regime_change' == events :
+          self.world[country].regime_change -= 1
+        if 'aid' == events :
+          self.world[country].aid -= 1
 
     self.test_country(country, f, events)
 
@@ -2694,12 +2684,6 @@ class Board():
       elif n == "Philippines" and "Abu Sayyaf" in c.markers : l.append(c)
     return l
 
-  def get_neutral_countries(self) :
-    return [ c for n,c in self.world.items() if c.neutral_Q() ]
-
-  def get_non_muslim_countries(self) :
-    return [ c for n,c in self.world.items() if c.soft_Q() or c.hard_Q() ]
-
   def get_countries_with_plots(self) :
     l = []
     for n,c in self.world.items() :
@@ -2714,9 +2698,6 @@ class Board():
 
   def get_countries_with_cells(self) :
     return [c for n,c in self.world.items() if c.totalCells() > 0]
-
-  def get_adjacent_countries(self, c_name) :
-    return [ self.country(c.name) for c in self.country(c_name).adjacent_countries ]
 
   def gwot(self):
     p = 0
@@ -3344,38 +3325,38 @@ class Labyrinth(cmd.Cmd):
         print("Enter e or o.")
         print("")
 
-#  def modifiedWoIRoll(self, baseRoll, country, useGWOTPenalty = True):
-#    modRoll = baseRoll
-#
-#    if self.board.prestige_track.get_prestige() <= 3:
-#      modRoll -= 1
-#      self.outputToHistory("-1 for Prestige", False)
-#    elif self.board.prestige_track.get_prestige() >= 7 and self.board.prestige_track.get_prestige() <=9:
-#      modRoll += 1
-#      self.outputToHistory("+1 for Prestige", False)
-#    elif self.board.prestige_track.get_prestige() >= 10:
-#      modRoll += 2
-#      self.outputToHistory("+2 for Prestige", False)
-#
-#    if self.map[country].ally_Q() and self.map[country].fair_Q():
-#      modRoll -= 1
-#      self.outputToHistory("-1 for Attempt to shift to Good", False)
-#
-#    if useGWOTPenalty:
-#      modRoll += self.board.gwot()['penalty']
-#      if self.board.gwot()['penalty'] != 0:
-#        self.outputToHistory("-1 for GWOT Relations Penalty", False)
-#
-#    if self.map[country].aid_Q() :
-#      modRoll += 1
-#      self.outputToHistory("+1 for Aid", False)
-#
-#    for adj in self.map[country].links:
-#      if adj.ally_Q() and adj.good_Q():
-#        modRoll += 1
-#        self.outputToHistory("+1 for Adjacent Good Ally", False)
-#        break
-#    return modRoll
+  def modifiedWoIRoll(self, baseRoll, country, useGWOTPenalty = True):
+    modRoll = baseRoll
+
+    if self.board.prestige_track.get_prestige() <= 3:
+      modRoll -= 1
+      self.outputToHistory("-1 for Prestige", False)
+    elif self.board.prestige_track.get_prestige() >= 7 and self.board.prestige_track.get_prestige() <=9:
+      modRoll += 1
+      self.outputToHistory("+1 for Prestige", False)
+    elif self.board.prestige_track.get_prestige() >= 10:
+      modRoll += 2
+      self.outputToHistory("+2 for Prestige", False)
+
+    if self.map[country].ally_Q() and self.map[country].fair_Q():
+      modRoll -= 1
+      self.outputToHistory("-1 for Attempt to shift to Good", False)
+
+    if useGWOTPenalty:
+      modRoll += self.board.gwot()['penalty']
+      if self.board.gwot()['penalty'] != 0:
+        self.outputToHistory("-1 for GWOT Relations Penalty", False)
+
+    if self.map[country].aid_Q() :
+      modRoll += 1
+      self.outputToHistory("+1 for Aid", False)
+
+    for adj in self.map[country].links:
+      if adj.ally_Q() and adj.good_Q():
+        modRoll += 1
+        self.outputToHistory("+1 for Adjacent Good Ally", False)
+        break
+    return modRoll
 
   def changePrestige(self, delta, lineFeed = True):
     self.board.prestige_track.inc_prestige(delta)
@@ -3511,22 +3492,22 @@ class Labyrinth(cmd.Cmd):
       res += spikes
     return res
 
-#  def handleMuslimWoI(self, roll, country):
-#    if roll <= 3:
-#      self.outputToHistory("* WoI in %s failed." % country)
-#    elif roll == 4:
-#      self.map[country].aid = 1
-#      self.outputToHistory("* WoI in %s adds Aid." % country, False)
-#      self.outputToHistory(self.board.country_summary(country), True)
-#    else:
-#      if self.map[country].alignment == "Neutral":
-#        self.map[country].alignment = "Ally"
-#        self.outputToHistory("* WoI in %s succeeded - Alignment now Ally." % country, False)
-#        self.outputToHistory(self.board.country_summary(country), True)
-#      elif self.map[country].ally_Q():
-#        self.improveGovernance(country)
-#        self.outputToHistory("* WoI in %s succeeded - Governance now %s." % (country, self.map[country].govStr()), False)
-#        self.outputToHistory(self.board.country_summary(country), True)
+  def handleMuslimWoI(self, roll, country):
+    if roll <= 3:
+      self.outputToHistory("* WoI in %s failed." % country)
+    elif roll == 4:
+      self.map[country].aid = 1
+      self.outputToHistory("* WoI in %s adds Aid." % country, False)
+      self.outputToHistory(self.board.country_summary(country), True)
+    else:
+      if self.map[country].alignment == "Neutral":
+        self.map[country].alignment = "Ally"
+        self.outputToHistory("* WoI in %s succeeded - Alignment now Ally." % country, False)
+        self.outputToHistory(self.board.country_summary(country), True)
+      elif self.map[country].ally_Q():
+        self.improveGovernance(country)
+        self.outputToHistory("* WoI in %s succeeded - Governance now %s." % (country, self.map[country].govStr()), False)
+        self.outputToHistory(self.board.country_summary(country), True)
 
 
 
@@ -5214,59 +5195,9 @@ class Labyrinth(cmd.Cmd):
 
   def war_of_ideas(self, c_name) :
     country = self.board.country(c_name)
-    if c_name == "United States" or country.iran_Q() or c_name == 'Israel':
-      return (False, c_name, 'ineligible_woi')
-    elif (country.shia_mix_Q() or country.suni_Q()) and country.alignment <= Alignment.ADVERSARY :
-      return (False, c_name, 'alignment')
-    elif country.ally_Q() and country.regime_change_Q() and country.troops() - country.totalCells() < TROOPS_UPKEEP_REGIME_CHANGE :
-      return (False, c_name, 'regime_change_troop_restriction')
-
-    if country.shia_mix_Q() or country.suni_Q() :
-      if country.neutral_Q() :
-        m_roll = sum([
-          self.board.prestige_track.get_prestige_modifier()[1]
-          , self.board.gwot()['penalty']
-          , country.aid
-          , WOI_ADJ_GOOD if any([ c.good_Q() for c in self.board.get_adjacent_countries(c_name)]) else 0
-          , random_roll()
-        ])
-        if m_roll >= WOI_DIVIDE :
-          self.board.set_alignment(c_name, Alignment.ALLY)
-          return (True, c_name, 'success')
-        elif m_roll in WOI_AID and not country.aid_Q() :
-          self.board.set_country_event_in_play(c_name, 'aid')
-          return (True, c_name, 'failed_aid')
-        else : return (True, c_name, 'failed')
-      elif country.ally_Q() :
-        m_roll = sum([
-          self.board.prestige_track.get_prestige_modifier()[1]
-          , self.board.gwot()['penalty']
-          , country.aid
-          , WOI_ADJ_GOOD if any([ c.good_Q() for c in self.board.get_adjacent_countries(c_name)]) else 0
-          , WOI_TO_GOOD if country.fair_Q() else 0
-          , random_roll()
-        ])
-        if m_roll >= WOI_DIVIDE :
-          if country.poor_Q() :
-            self.board.set_governance(c_name, Governance.FAIR)
-          elif country.fair_Q() :
-            self.board.set_governance(c_name, Governance.GOOD)
-            if country.regime_change_Q() : self.board.unset_country_event_in_play(c_name, 'regime_change')
-            if country.aid_Q() : self.board.unset_country_event_in_play(c_name, 'aid')
-          return (True, c_name, 'success')
-        elif m_roll in WOI_AID and not country.aid_Q() :
-          self.board.set_country_event_in_play(c_name, 'aid')
-          return (True, c_name, 'failed_aid')
-        else : return (True, c_name, 'failed')
-     
-    elif country.non_muslim_Q() :
-      if random_roll() <= POSTURE_DIVIDE : self.board.set_posture(c_name, Posture.SOFT)
-      elif random_roll() > POSTURE_DIVIDE : self.board.set_posture(c_name, Posture.HARD)
-      if self.board.country(c_name).posture == self.board.country("United States").posture :
-        self.board.prestige_track.inc_prestige()
-        return (True, c_name, 'success_prestige')
-      return (True, c_name, 'success')
-
+    if c_name == "United States" or country.iran_Q():
+      return (False, c_name, 'ineligble_woi')
+    elif 
   def disrupt(self, c_name, d_actives = 0, d_sleepers = 0) :
     if self.board.event_in_play_Q('FATA') : return (FALSE, c_name, 'FATA')
 
@@ -5508,34 +5439,44 @@ class UICmd(cmd.Cmd) :
 
     res = self.game.war_of_ideas(args['country'])
 
-    if res[0] == False :
-      if res[2] == 'ineligble_woi' :
-        print("   War of Ideas must target muslim or non-muslim country (7.2)")
-      elif res[2] == 'alignment' :
-        print("   %s alignment must be NEUTRAL or ALLY")
-      elif res[2] == 'regime_change_troop_restriction' :
-        print("   Only %d troops to %d cells (7.2.1.3)")
-    elif res[0] == True :
-      if res[2] == 'success' :
-        print("   War of Ideas success")
-      if res[2] == 'success_prestige' :
-        print("   War of Ideas success: increase prestige (+1)")
-      elif res[2] == 'failed_aid' :
-        print("   War of Ideas failed: add aid")
-      elif res[2] == 'failed' :
-        print("   War of Ideas failed")
-
-  def complete_war_of_ideas(self, text, line, begidx, endidx) :
-    if re.match("war_of_ideas $", line) != None :
-      countries = self.game.board.get_allied_countries() + self.game.board.get_neutral_countries() + self.game.board.get_non_muslim_countries()
-
-      return [ c.name for c in countries ]
-    elif re.match('war_of_ideas ([a-zA-Z/_]+)$', line) != None :
-      countries = self.game.board.get_allied_countries() + self.game.board.get_neutral_countries() + self.game.board.get_non_muslim_countries()
-      if len(countries) == 1 : return [ countries[0].name ]
-      return [ c.name for c in countries if c.name.lower().startswith(text.lower()) ]
-
-    else : return []
+    where = None
+    while not where:
+      input = self.getCountryFromUser("War of Ideas in what country?  (? for list): ", "XXX", self.listWoICountries)
+      if input == "":
+        print("")
+        return
+      else:
+        if self.map[input].non_muslim_Q() and input != "United States":
+          where = input
+        elif self.map[input].ally_Q() or self.map[input].alignment == "Neutral" or self.map[input].governance == 0:
+          where = input
+        else:
+          print("Country not eligible for War of Ideas.")
+          print("")
+    if self.map[where].non_muslim_Q() and input != "United States": # Non-Muslim
+      postureRoll = self.getRollFromUser("Enter Posture Roll or r to have program roll: ")
+      if postureRoll > 4:
+        self.board.set_posture(where, "Hard")
+        self.outputToHistory("* War of Ideas in %s - Posture Hard" % where)
+        if self.map["United States"].hard_Q():
+          self.board.prestige_track.inc_prestige(1)
+          if self.board.prestige_track.get_prestige() > 12:
+            self.board.prestige_track.set_prestige(12)
+          self.outputToHistory("US Prestige now %d" % self.board.prestige_track.get_prestige())
+      else:
+        self.board.set_posture(where, "Soft")
+        self.outputToHistory("* War of Ideas in %s - Posture Soft" % where)
+        if self.map["United States"].soft_Q():
+          self.board.prestige_track.inc_prestige(1)
+          if self.board.prestige_track.get_prestige() > 12:
+            self.board.prestige_track.set_prestige(12)
+          self.outputToHistory("US Prestige now %d" % self.board.prestige_track.get_prestige())
+    else: # Muslim
+      self.testCountry(where)
+      woiRoll = self.getRollFromUser("Enter WoI roll or r to have program roll: ")
+      modRoll = self.modifiedWoIRoll(woiRoll, where)
+      self.outputToHistory("Modified Roll: %d" % modRoll)
+      self.handleMuslimWoI(modRoll, where)
 
   def help_war_of_ideas(self):
     print("   US Action - 7.2 War of Ideas")

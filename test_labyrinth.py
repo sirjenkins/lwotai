@@ -4,6 +4,7 @@ Mike Houser, 2011
 
 08112011.1
 '''
+import lwotai
 from lwotai import Labyrinth
 from lwotai import Governance
 from lwotai import Alignment
@@ -188,246 +189,92 @@ class Deck(unittest.TestCase):
       if i > 0:
         self.assertEqual(i, app.deck[str(i)].number)
 
+class war_of_ideas(unittest.TestCase) :
+  '''War of Ideas 7.2'''
 
-class WOIRollModifiers(unittest.TestCase):
-  '''Test War of Ideas Roll Modifires'''
+  def setUp(self) :
+    self.old_random_roll = lwotai.random_roll
 
-  def test_prestige(self):
-    '''Prestige'''
+  def tearDown(self) :
+    lwotai.random_roll = self.old_random_roll
+
+  def test_ineligible(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    app.board.set_prestige(1)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 1)
-    app.board.set_prestige(2)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 1)
-    app.board.set_prestige(3)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 1)
-    app.board.set_prestige(4)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 2)
-    app.board.set_prestige(5)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 2)
-    app.board.set_prestige(6)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 2)
-    app.board.set_prestige(7)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.board.set_prestige(8)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.board.set_prestige(9)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.board.set_prestige(10)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
-    app.board.set_prestige(11)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
-    app.board.set_prestige(12)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
+    res = app.war_of_ideas("Iran")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'ineligible_woi')
 
-  def test_aid(self):
-    '''Aid'''
+  def test_alignment(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.map["Gulf States"].aid = 1
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
+    res = app.war_of_ideas("Iraq")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'alignment')
 
-  def test_to_good(self):
-    '''Going to Good'''
+  def test_failed(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.map["Gulf States"].governance = Governance.POOR
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
-    app.map["Gulf States"].governance = Governance.FAIR
-    app.map["Gulf States"].alignment = Alignment.NEUTRAL
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
+    app.board.prestige_track.set_prestige(5)
+    old_random_roll = lwotai.random_roll
+    for i in range(1,4) :
+      lwotai.random_roll = lambda :i
+      res = app.war_of_ideas("Saudi Arabia")
+      self.assertTrue(res[0])
+      self.assertEqual(res[2], 'failed')
+      res = app.war_of_ideas("Canada")
+      self.assertTrue(res[0])
+      self.assertEqual(res[2], 'success')
+    lwotai.random_roll = old_random_roll
 
-  def test_gwot_penalty(self):
-    '''GWOT Penalty'''
+  def test_failed_aid(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.map["United States"].posture = Posture.SOFT
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 2)
-    app.map["Canada"].posture = Posture.HARD
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 1)
-    app.map["France"].posture = Posture.HARD
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 0)
-    app.map["Germany"].posture = Posture.HARD
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 0)
+    app.board.prestige_track.set_prestige(5)
+    old_random_roll = lwotai.random_roll
+    lwotai.random_roll = lambda :4
+    res = app.war_of_ideas("Saudi Arabia")
+    lwotai.random_roll = old_random_roll
+    self.assertTrue(res[0])
+    self.assertEqual(res[2], 'failed_aid')
+    self.assertTrue(app.board.country('Saudi Arabia').aid_Q())
 
-  def test_adjacent_countries(self):
-    '''Adjacent countries Ally Good'''
+  def test_troop_restriction(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.map['Pakistan'].governance = Governance.GOOD
-    app.map['Pakistan'].alignment = Alignment.NEUTRAL
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 3)
-    app.map['Pakistan'].alignment = Alignment.ALLY
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
-    app.map['Iraq'].governance = Governance.GOOD
-    app.map['Iraq'].alignment = Alignment.ALLY
-    self.assertEqual(app.modifiedWoIRoll(3,"Gulf States"), 4)
+    app.board.prestige_track.set_prestige(5)
+    old_random_roll = lwotai.random_roll
+    lwotai.random_roll = lambda :5
+    app.board.set_country_event_in_play('Saudi Arabia', 'regime_change')
+    res = app.war_of_ideas("Saudi Arabia")
+    self.assertFalse(res[0])
+    self.assertEqual(res[2], 'regime_change_troop_restriction')
 
-class WOIhandler(unittest.TestCase):
-  '''Test War of Ideas Handler'''
-
-  def test_fail_rolls(self):
+  def test_success(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-    app.handleMuslimWoI(1, "Gulf States")
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
+    app.board.prestige_track.set_prestige(5)
+    old_random_roll = lwotai.random_roll
+    lwotai.random_roll = lambda :5
+    app.board.set_country_event_in_play('Saudi Arabia', 'aid')
 
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-    app.handleMuslimWoI(2, "Gulf States")
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
+    # Poor -> Fair
+    res = app.war_of_ideas("Saudi Arabia")
+    self.assertTrue(res[0])
+    self.assertEqual(res[2], 'success')
+    self.assertTrue(app.board.country('Saudi Arabia').aid_Q())
 
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-    app.handleMuslimWoI(3, "Gulf States")
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
+    # Fair -> Good
+    lwotai.random_roll = lambda :5
+    res = app.war_of_ideas("Saudi Arabia")
+    self.assertTrue(res[0])
+    self.assertEqual(res[2], 'success')
+    self.assertFalse(app.board.country('Saudi Arabia').aid_Q())
 
+  def test_success_prestige(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-    app.handleMuslimWoI(4, "Gulf States")
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 1)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-    app.handleMuslimWoI(5, "Gulf States")
-    self.assertEqual(app.map["Gulf States"].governance, Governance.GOOD)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Gulf States"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-    app.handleMuslimWoI(6, "Gulf States")
-    self.assertEqual(app.map["Gulf States"].governance, Governance.GOOD)
-    self.assertEqual(app.map["Gulf States"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Gulf States"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-    app.handleMuslimWoI(1, "Pakistan")
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-    app.handleMuslimWoI(2, "Pakistan")
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-    app.handleMuslimWoI(3, "Pakistan")
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-    app.handleMuslimWoI(4, "Pakistan")
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 1)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-    app.handleMuslimWoI(5, "Pakistan")
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-    app.handleMuslimWoI(6, "Pakistan")
-    self.assertEqual(app.map["Pakistan"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Pakistan"].alignment, Alignment.NEUTRAL)
-    self.assertEqual(app.map["Pakistan"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-    app.handleMuslimWoI(1, "Saudi Arabia")
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-    app.handleMuslimWoI(2, "Saudi Arabia")
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-    app.handleMuslimWoI(3, "Saudi Arabia")
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-    app.handleMuslimWoI(4, "Saudi Arabia")
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 1)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-    app.handleMuslimWoI(5, "Saudi Arabia")
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-
-    app = Labyrinth(TEST_SCENARIO, 1)
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.POOR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
-    app.handleMuslimWoI(6, "Saudi Arabia")
-    self.assertEqual(app.map["Saudi Arabia"].governance, Governance.FAIR)
-    self.assertEqual(app.map["Saudi Arabia"].alignment, Alignment.ALLY)
-    self.assertEqual(app.map["Saudi Arabia"].aid, 0)
+    app.board.prestige_track.set_prestige(5)
+    old_random_roll = lwotai.random_roll
+    lwotai.random_roll = lambda :5
+    app.board.set_posture('Canada', Posture.SOFT)
+    res = app.war_of_ideas("Canada")
+    self.assertTrue(res[0])
+    self.assertEqual(res[2], 'success_prestige')
+    self.assertNotEqual(app.board.prestige_track.get_prestige(), 5)
 
 class alert(unittest.TestCase):
   '''Test Alert'''

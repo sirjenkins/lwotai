@@ -209,6 +209,8 @@ test_scenario:
   world_state:
     Israel:
       posture: LOCKED_HARD
+    Canada:
+      posture: HARD
     United_States:
       posture: HARD
     Libya:
