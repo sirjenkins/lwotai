@@ -2513,7 +2513,7 @@ class Board():
   def remove_active_cells(self, country, num = 1) :
     a = min(num, self.world[country].active_cells)
     if self.event_in_play_Q("Sadr") and self.world[country].active_cells < 1:
-      self.unset_event_in_play("Sadr")
+      self.unset_event("Sadr")
     else :
       self.world[country].active_cells -= a
       self.funding_track.add_cells(a)
@@ -2583,12 +2583,12 @@ class Board():
 
   def set_prestige(self, num) : self.prestige_track.set_prestige(num)
 
-  def set_event_in_play(self, events) :
+  def set_event(self, events) :
     if type(events).__name__ == 'list' :
       self.__events.extend(events)
     else: self.__events.append(events)
 
-  def unset_event_in_play(self, events) :
+  def unset_event(self, events) :
     if type(events).__name__ == 'list' :
       for x in events :
         self.__events.remove(x)
@@ -2616,7 +2616,7 @@ class Board():
       raise Exception("Plots in play greater than board plot limit (%d)" % MAX_PLOTS)
     return self.test_country(country, f, num)
 
-  def set_country_event_in_play(self, country, events) :
+  def set_country_event(self, country, events) :
     def f(country, events) :
       if type(events).__name__ == 'list' :
         self.world[country].markers.extend(events)
@@ -2633,7 +2633,7 @@ class Board():
 
     self.test_country(country, f, events)
 
-  def unset_country_event_in_play(self, country, events) :
+  def unset_country_event(self, country, events) :
     def f(country, events) :
       if type(events).__name__ == 'list' :
         for x in events :
@@ -3009,7 +3009,7 @@ class Labyrinth(cmd.Cmd):
 
     self.board.set_prestige(scenario['prestige'])
     self.board.funding_track.set_funding(scenario['funding'])
-    self.board.set_event_in_play(scenario['events'])
+    self.board.set_event(scenario['events'])
 
     setters = { 
       'governance': lambda country, governance: self.board.set_governance(country.replace('_',' '), Governance[governance]) 
@@ -3017,9 +3017,9 @@ class Labyrinth(cmd.Cmd):
       , 'troops_stationed': lambda country, troops: self.board.place_troops(country.replace('_',' '), troops)
       , 'sleeper_cells' : lambda country, sleeper_cells: self.board.place_cells(country.replace('_',' '), sleeper_cells, ['funding_track'])
       , 'active_cells' : lambda country, active_cells: self.board.place_cells(country.replace('_',' '), active_cells, ['funding_track'], True)
-      , 'besieged': lambda country, v: self.board.set_country_event_in_play(country.replace('_',' '), 'besieged')
-      , 'regime_change': lambda country, v: self.board.set_country_event_in_play(country.replace('_',' '), 'besieged')
-      , 'markers': lambda country, v: self.board.set_country_event_in_play(country.replace('_',' '), 'besieged')
+      , 'besieged': lambda country, v: self.board.set_country_event(country.replace('_',' '), 'besieged')
+      , 'regime_change': lambda country, v: self.board.set_country_event(country.replace('_',' '), 'besieged')
+      , 'markers': lambda country, v: self.board.set_country_event(country.replace('_',' '), 'besieged')
       , 'posture' : lambda country, posture: self.board.set_posture(country.replace('_',' '), Posture[posture])
       , 'plots' : lambda country, plots: self.board.add_plots(country,plots)
     }
@@ -4967,10 +4967,6 @@ class Labyrinth(cmd.Cmd):
     print("Display Game History.  Type 'history save' to save history to a file called history.txt.")
     print("")
 
-
-
-
-
   def do_j(self, rest):
     cardNum = None
     try:
@@ -5234,7 +5230,7 @@ class Labyrinth(cmd.Cmd):
           self.board.set_alignment(c_name, Alignment.ALLY)
           return (True, c_name, 'success')
         elif m_roll in WOI_AID and not country.aid_Q() :
-          self.board.set_country_event_in_play(c_name, 'aid')
+          self.board.set_country_event(c_name, 'aid')
           return (True, c_name, 'failed_aid')
         else : return (True, c_name, 'failed')
       elif country.ally_Q() :
@@ -5251,11 +5247,11 @@ class Labyrinth(cmd.Cmd):
             self.board.set_governance(c_name, Governance.FAIR)
           elif country.fair_Q() :
             self.board.set_governance(c_name, Governance.GOOD)
-            if country.regime_change_Q() : self.board.unset_country_event_in_play(c_name, 'regime_change')
-            if country.aid_Q() : self.board.unset_country_event_in_play(c_name, 'aid')
+            if country.regime_change_Q() : self.board.unset_country_event(c_name, 'regime_change')
+            if country.aid_Q() : self.board.unset_country_event(c_name, 'aid')
           return (True, c_name, 'success')
         elif m_roll in WOI_AID and not country.aid_Q() :
-          self.board.set_country_event_in_play(c_name, 'aid')
+          self.board.set_country_event(c_name, 'aid')
           return (True, c_name, 'failed_aid')
         else : return (True, c_name, 'failed')
      
@@ -5351,8 +5347,8 @@ class Labyrinth(cmd.Cmd):
 
     x, t = self.board.place_troops(dst, num, src)
     if t != num : raise Exception("The request number of units to deploy could not be satisfied")
-    self.board.unset_country_event_in_play(src, [ x for x in self.board.country(src).markers if x == 'aid' ])
-    self.board.set_country_event_in_play(src, 'besieged')
+    self.board.unset_country_event(src, [ x for x in self.board.country(src).markers if x == 'aid' ])
+    self.board.set_country_event(src, 'besieged')
     self.roll_prestige()
     return (True, dst, num, src)
 
@@ -5382,7 +5378,7 @@ class Labyrinth(cmd.Cmd):
     else : self.board.set_governance(dst, Governance.FAIR)
     self.board.set_alignment(dst, Alignment.ALLY)
     self.board.activate_sleepers(dst)
-    self.board.set_country_event_in_play(dst, 'regime_change')
+    self.board.set_country_event(dst, 'regime_change')
     self.roll_prestige()
     return (True, dst, num, src)
 
@@ -5524,6 +5520,7 @@ class UICmd(cmd.Cmd) :
         print("   War of Ideas failed: add aid")
       elif res[2] == 'failed' :
         print("   War of Ideas failed")
+      do_status(args['country'])
 
   def complete_war_of_ideas(self, text, line, begidx, endidx) :
     if re.match("war_of_ideas $", line) != None :
@@ -5578,7 +5575,7 @@ class UICmd(cmd.Cmd) :
       elif res[2] == 'no_cadre' :
         print("   No cadre to disrupt")
     elif res[0] == True :
-      print("   Disrupt %s: Active: %d, Sleeper %d, Cadre %s" % (res[1], res[2], res[3], res[4]))
+      print("   Disrupt %s: Active: %d, Sleeper %d, Cadre %s, Prestige %d" % (res[1], res[2], res[3], res[4]), self.game.board.prestige_track.get_prestige())
 
     return False
 
@@ -5601,7 +5598,6 @@ class UICmd(cmd.Cmd) :
     print("   Usage: disrupt <country> <ACS><ACS>")
     print("\n   Example: 1 active cell, 1 sleeper.")
     print("     disrupt Saudi Arabia AS")
-
 
   def do_alert(self, line):
     args = {}
