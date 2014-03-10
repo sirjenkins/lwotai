@@ -240,7 +240,7 @@ class war_of_ideas(unittest.TestCase) :
     app.board.prestige_track.set_prestige(5)
     old_random_roll = lwotai.random_roll
     lwotai.random_roll = lambda :5
-    app.board.set_country_event_in_play('Saudi Arabia', 'regime_change')
+    app.board.set_country_event('Saudi Arabia', 'regime_change')
     res = app.war_of_ideas("Saudi Arabia")
     self.assertFalse(res[0])
     self.assertEqual(res[2], 'regime_change_troop_restriction')
@@ -250,7 +250,7 @@ class war_of_ideas(unittest.TestCase) :
     app.board.prestige_track.set_prestige(5)
     old_random_roll = lwotai.random_roll
     lwotai.random_roll = lambda :5
-    app.board.set_country_event_in_play('Saudi Arabia', 'aid')
+    app.board.set_country_event('Saudi Arabia', 'aid')
 
     # Poor -> Fair
     res = app.war_of_ideas("Saudi Arabia")
@@ -464,7 +464,7 @@ class deploy(unittest.TestCase) :
 
   def test_regime_change_troop_restriction(self) :
     app = Labyrinth(TEST_SCENARIO, 1)
-    app.board.set_country_event_in_play("Saudi Arabia", "regime_change")
+    app.board.set_country_event("Saudi Arabia", "regime_change")
     self.assertEqual(app.board.country("Saudi Arabia").regime_change, 1)
     res = app.deploy("Gulf States", 2, "Saudi Arabia")
     self.assertFalse(res[0])
@@ -668,7 +668,7 @@ class withdraw(unittest.TestCase):
     app.board.place_troops("Afghanistan", 6)
     app.board.set_governance("Afghanistan", Governance.POOR)
     app.board.set_alignment("Afghanistan", Alignment.ALLY)
-    app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid', 'regime_change'])
+    app.board.set_country_event("Afghanistan", ['aid', 'aid', 'regime_change'])
 
     self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
     self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
@@ -695,7 +695,7 @@ class withdraw(unittest.TestCase):
     app.board.place_troops("Afghanistan", 6)
     app.board.set_governance("Afghanistan", Governance.POOR)
     app.board.set_alignment("Afghanistan", Alignment.ALLY)
-    app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid', 'regime_change'])
+    app.board.set_country_event("Afghanistan", ['aid', 'aid', 'regime_change'])
 
     self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
     self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
@@ -723,7 +723,7 @@ class withdraw(unittest.TestCase):
     app.board.place_troops("Afghanistan", 6)
     app.board.set_governance("Afghanistan", Governance.POOR)
     app.board.set_alignment("Afghanistan", Alignment.ALLY)
-    app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid'])
+    app.board.set_country_event("Afghanistan", ['aid', 'aid'])
 
     self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
     self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
@@ -751,7 +751,7 @@ class withdraw(unittest.TestCase):
     app.board.place_troops("Afghanistan", 6)
     app.board.set_governance("Afghanistan", Governance.POOR)
     app.board.set_alignment("Afghanistan", Alignment.ALLY)
-    app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid', 'regime_change'])
+    app.board.set_country_event("Afghanistan", ['aid', 'aid', 'regime_change'])
 
     self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)
     self.assertEqual(app.map["Afghanistan"].alignment, Alignment.ALLY)
@@ -780,7 +780,7 @@ class withdraw(unittest.TestCase):
       app.board.place_troops("Afghanistan", 6)
       app.board.set_governance("Afghanistan", Governance.POOR)
       app.board.set_alignment("Afghanistan", Alignment.ALLY)
-      app.board.set_country_event_in_play("Afghanistan", ['aid', 'aid', 'regime_change'])
+      app.board.set_country_event("Afghanistan", ['aid', 'aid', 'regime_change'])
       app.board.set_alignment("Saudi Arabia", a)
 
       self.assertEqual(app.map["Afghanistan"].governance, Governance.POOR)

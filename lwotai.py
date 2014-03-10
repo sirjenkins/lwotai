@@ -308,6 +308,8 @@ class Card:
     self.mark = theMark
     self.lapsing = theLapsing
 
+  def can_play_Q()(self, turn, app) :
+
   def playable(self, side, app):
     if self.type == "US" and side == "Jihadist":
       return False
@@ -316,7 +318,7 @@ class Card:
     elif self.type == "US" and side == "US":
       if self.number == 1: # Backlash
         for country in app.map:
-          if (not app.map[country].non_muslim_Q()) and (app.map[country].plots > 0):
+          if (not app.map[country].non_muslim_Q()) and (app.map[country].plot_Q()):
             return True
         return False
       elif self.number == 2: # Biometrics
@@ -365,7 +367,7 @@ class Card:
       elif self.number == 21: # Let's Roll
         allyGoodPlotCountries = 0
         for country in app.map:
-          if app.map[country].plots > 0:
+          if app.map[country].plot_Q():
             if app.map[country].ally_Q() or app.map[country].good_Q():
               allyGoodPlotCountries += 1
         return allyGoodPlotCountries > 0
@@ -405,7 +407,7 @@ class Card:
         if "Leak-Wiretapping" in app.markers:
           return False
         for country in ["United States", "United Kingdom", "Canada"]:
-          if app.map[country].totalCells() > 0 or app.board.cadre_Q(country) or app.map[country].plots > 0:
+          if app.map[country].totalCells() > 0 or app.board.cadre_Q(country) or app.map[country].plot_Q():
             return True
         return False
       elif self.number == 32: # Back Channel
@@ -463,7 +465,7 @@ class Card:
           return False
         for country in app.map:
           if app.map[country].good_Q():
-            if app.map[country].totalCells(True) > 0 or app.map[country].plots > 0:
+            if app.map[country].totalCells(True) > 0 or app.map[country].plot_Q():
               return False
         return True
       elif self.number == 46: # Sistani
@@ -693,7 +695,7 @@ class Card:
       elif self.number == 116: # KSM
         if side == "US":
           for country in app.map:
-            if app.map[country].plots > 0:
+            if app.map[country].plot_Q():
               if app.map[country].non_muslim_Q() or app.map[country].ally_Q():
                 return True
           return False
@@ -855,7 +857,7 @@ class Card:
     elif self.type == "US" and side == "US":
       if self.number == 1: # Backlash
         for country in app.map:
-          if (app.map[country].culture != "Non-Muslim") and (app.map[country].plots > 0):
+          if (app.map[country].culture != "Non-Muslim") and (app.map[country].plot_Q()):
             app.outputToHistory("Plot in Muslim country found. Select the plot. Backlash in play", True)
             app.backlashInPlay = True
             return True
@@ -1237,7 +1239,7 @@ class Card:
             if num > 0:
               app.board.remove_cadre(country)
               app.outputToHistory("Cadre removed from %s." % country, False)
-          if app.map[country].plots > 0:
+          if app.map[country].plot_Q():
             num = app.map[country].plots
             if num > 0:
               app.map[country].plots -= num
@@ -2247,7 +2249,7 @@ class Card:
       elif self.number == 116: # KSM
         if side == "US":
           for country in app.map:
-            if app.map[country].plots > 0:
+            if app.map[country].plot_Q():
               if app.map[country].ally_Q() or app.map[country].non_muslim_Q():
                 numPlots = app.map[country].plots
                 app.map[country].plots = 0
@@ -2974,7 +2976,7 @@ class Labyrinth(cmd.Cmd):
   # Countries tested test
     for country in self.map:
       badCountry = False
-      if (self.map[country].sleeper_cells > 0) or (self.map[country].active_cells > 0) or (self.map[country].troops_stationed > 0) or (self.map[country].aid > 0) or  (self.map[country].regime_change > 0) or (self.board.cadre_Q(country)) or (self.map[country].plots > 0):
+      if (self.map[country].sleeper_cells > 0) or (self.map[country].active_cells > 0) or (self.map[country].troops_stationed > 0) or (self.map[country].aid > 0) or  (self.map[country].regime_change > 0) or (self.board.cadre_Q(country)) or (self.map[country].plot_Q()):
         if (self.map[country].governance == 0):
           badCountry = True
         if self.map[country].non_muslim_Q():
@@ -4809,7 +4811,7 @@ class Labyrinth(cmd.Cmd):
     print("Contries with Active Plots")
     print("--------------------------")
     for country in self.map:
-      if self.map[country].plots > 0:
+      if self.map[country].plot_Q():
         print(self.board.country_summary(country))
     print("")
 
@@ -4871,7 +4873,7 @@ class Labyrinth(cmd.Cmd):
     print("Ally or Good Countries with Plots")
     print("---------------------------------")
     for country in self.map:
-      if self.map[country].plots > 0:
+      if self.map[country].plot_Q():
         if self.map[country].ally_Q() or self.map[country].good_Q():
           print(self.board.country_summary(country))
     print("")
@@ -5046,7 +5048,7 @@ class Labyrinth(cmd.Cmd):
   def do_plot(self, rest):
     foundPlot = False
     for country in self.map:
-      while self.map[country].plots > 0:
+      while self.map[country].plot_Q():
         if not foundPlot:
           self.outputToHistory("", False)
           self.outputToHistory("[[ Resolving Plots ]]", True)
@@ -5405,10 +5407,12 @@ class UICmd(cmd.Cmd) :
   class GameState(Enum) :
     MAIN_MENU = "Main Menu"
     GAME = "LWOT"
+    US_TURN = "US"
+    JIHADIST_TURN = "JI"
 
   def __init__(self) :
     cmd.Cmd.__init__(self)
-    self.prompt_temp = "%d Turn (%d): "
+    self.prompt_temp = "Turn (%d) %s: "
     self.state = UICmd.GameState.MAIN_MENU
     self.prompt = self.state.value
     self.game = None
@@ -5444,7 +5448,7 @@ class UICmd(cmd.Cmd) :
           print("Jihadist Ideology: Normal\n")
           self.game = Labyrinth(self.scenario_opts[opt - 1], 1)
           print(self.game.board)
-          self.state = self.GameState.GAME
+          self.state = self.GameState.US_TURN
           return False
 
       self.main_menu()
@@ -5458,8 +5462,10 @@ class UICmd(cmd.Cmd) :
   def postcmd(self, stop, line) :
     if self.state == self.GameState.MAIN_MENU :
       return stop      
-    elif self.state == self.GameState.GAME :
-      self.prompt = self.prompt_temp % (self.game.startYear + self.game.turn - 1, self.game.turn)
+    elif self.state == self.GameState.US_TURN :
+      self.prompt = self.prompt_temp % (self.game.turn, self.GameState.US_TURN.value)
+    elif self.state == self.GameState.JIHADIST_TURN :
+      self.prompt = self.prompt_temp % (self.game.turn, self.GameState.JIHADIST_TURN.value)
 
     return stop
 
@@ -5841,7 +5847,15 @@ class UICmd(cmd.Cmd) :
     print("   US Action: Deploy - 7.3")
     print("   Usage: deploy <to country> <num of troops> <from country>\n")
 
-  def do_quit(self, args) : return True
+  def do_quit(self, line) :
+#    if line == '' :
+#      res = input("   Are you sure you want to quit? N/y: ")
+#      if res.lower() == 'n' :
+#        print("   Game continues\n")
+#      elif res.lower() == 'y' :
+#        print("   Game stopped. Goodbye.")
+#        return True
+    return True
   def help_quit(self) : print("   Exit the game")
 
 def main():
