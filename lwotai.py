@@ -19,6 +19,7 @@ UNDO_FILE = "undo.lwot"
 ROLLBACK_FILE = "turn."
 MAP_FILE = "map.yml"
 SCENARIOS_FILE = "scenarios.yml"
+CARDS_FILE = "cards.yml"
 
 
 import sys
@@ -57,6 +58,54 @@ PRESTIGE_STATUS = {
 
 def random_roll():
   return random.randint(1,6)
+
+def playable_tokenizer(s) :
+  s = s.upper()
+  Token = namedtuple('Token', ['typ', 'value', 'line', 'column'])
+  keywords = {'ALL' : 'QUANTIFIER'
+    , 'AND' : 'STMT LGCL'
+    , 'ANY' : 'QUANTIFIER'
+    , 'HAS' : 'MARKER CHECK'
+    , 'IS'  : 'MARKER CHECK'
+    , 'NOT' : 'NEGATE'
+    , 'SET' : 'TRUE'
+    , 'UNSET' : 'FALSE'
+    , 'YES' : 'TRUE'
+    , 'NO'  : 'FALSE'
+    , '<'   : 'COND'
+    , '>'   : 'COND'
+  }
+
+  token_specification = [
+      ('NUMBER',  r'\d+(\.\d*)?'), # Integer or decimal number
+      ('COND',    r'>|<|IS|HAS'),        # Conditional operators
+      ('CONJ',    r','),           # Conjoin operator
+      ('LGCL',    r'AND|OR'),      # Logical operator 
+      ('ID',      r'[A-Za-z-]+'),  # Identifiers
+      ('ARTH',      r'[+*\/\-]'),  # Arithmetic operators
+      ('NEWLINE', r'\n'),          # Line endings
+      ('SKIP',    r'[ \t]'),       # Skip over spaces and tabs
+  ]
+  tok_regex = '|'.join('(?P<%s>%s)' % pair for pair in token_specification)
+  get_token = re.compile(tok_regex).match
+  line = 1
+  pos = line_start = 0
+
+  mo = get_token(s)
+  while mo is not None:
+      typ = mo.lastgroup
+      if typ == 'NEWLINE':
+          line_start = pos
+          line += 1
+      elif typ != 'SKIP':
+          val = mo.group(typ)
+          if typ == 'ID' and val in keywords:
+              typ = keywords[val]
+          yield Token(typ, val, line, mo.start()-line_start)
+      pos = mo.end()
+      mo = get_token(s, pos)
+  if pos != len(s):
+      raise RuntimeError('Unexpected character %r on line %d' %(s[pos], line))
 
 class Governance(IntEnum):
   ISLAMIST_RULE = 4
@@ -307,8 +356,6 @@ class Card:
     self.remove = theRemove
     self.mark = theMark
     self.lapsing = theLapsing
-
-  def can_play_Q()(self, turn, app) :
 
   def playable(self, side, app):
     if self.type == "US" and side == "Jihadist":
@@ -3072,6 +3119,15 @@ class Labyrinth(cmd.Cmd):
     else : raise Exception("Unknown scenario!")
 
   def deckSetup(self):
+    deck_config = None
+    with open(CARDS_FILE, 'r') as f :
+      deck_config = yaml.load(f)
+
+    for x in [ playable_tokenizer(p['playable']) for p in deck_config.values() ] :
+      for t in x :
+        print(t)
+      print()
+
     self.deck["1"] = Card(1,"US","Backlash",1,False,False,False)
     self.deck["2"] = Card(2,"US","Biometrics",1,False,False,True)
     self.deck["3"] = Card(3,"US","CTR",1,False,True,False)

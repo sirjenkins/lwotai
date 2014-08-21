@@ -1,0 +1,129 @@
+1:
+  name: Backlash
+  type: US
+  playable: any suni shia-mix has plot
+3:
+  name: CRT
+  type: US
+  playable: us is soft
+6: &sanctions
+  name: Sanctions
+  type: US
+  playable: 43 is set
+7: *sanctions
+8: &forces
+  name: Special Forces
+  type: US
+  playable: any country has troops and any adjacent has cells
+9: *forces
+10: *forces
+13:
+  name: Anbar Awakening
+  type: US
+  playable: iraq, syria has troops
+14:
+  name: Covert Action
+  type: US
+  playable: any country is adversary
+15:
+  name: Ethiopia Strikes
+  type: US
+  playable: somalia, sudan is islmaist rule
+21:
+  name: Lets Roll
+  type: US
+  playable: any ally good has plot
+22:
+  name: Mossad and Shin Bet
+  type: US
+  playable: israel, jordan, lebanon has cells
+23: &predator
+  name: Predator
+  type: US
+  playable: any suni shia-mix has cells
+24: *predator
+25: *predator
+26:
+  name: Quartet
+  type: US
+  playable: 11 is set and not overstretch and israel all adjacent is not islamist rule
+27:
+  name: Saddam Captured
+  type: US
+  playable: iraq has troops
+28:
+  name: Sharia
+  type: US
+  playable: any country is besieged
+30:
+  name: UN Nation Building
+  type: US
+  playable: any country is regime change and 53 is unset
+31:
+  name: Wiretapping
+  type: US
+  playable: us, uk, canada has cells, cadres, plots
+32:
+  name: Back Channel
+  type: US
+  playable: us is soft and any country is adversary
+33:
+  name: Benazir Bhutto
+  type: US
+  playable: 60 is unset and pakistan is not islamist rule and pakistan all adjacent is not islamist rule
+34:
+  name: Enhanced Measures
+  type: US
+  playable: us is hard and disrupt is possible
+35:
+  name: Hajib
+  type: US
+  playable: all country is not islamist rule
+36:
+  name: Indo-Pakistani Talks
+  type: US
+  playable: pakistan is good, fair
+37:
+  name: Iraqi WMD
+  type: US
+  playable: us is hard and iraq is adversary
+38:
+  name: Libyan Deal
+  type: US
+  playable: libya is poor and iraq, syria is ally
+39:
+  name: Libyan WMD
+  type: US
+  playable: us is hard and libya is adversary and 38 is unset
+40:
+  name: Mass Turnout
+  type: US
+  playable: any country is regime change
+41:
+  name: NATO
+  type: US
+  playable: any country is regime change and gwot > 0
+42:
+  name: Pakistani Offensive
+  type: US
+  playable: pakistan is ally and 80 is unset
+43:
+  name: Patriot Act
+  type: US
+  playable: 'yes'
+44:
+  name: Renditions
+  type: US
+  playable: us is hard
+45:
+  name: Safer Now
+  type: US
+  playable: all country is not islamist rule and all good country has no cells and all good country has no plots
+46:
+  name: Sistani
+  type: US
+  playable: shia-mix regime change country has cells
+47:
+  name: The door of Itjihad was closed
+  type: US
+  playable: 'yes'
